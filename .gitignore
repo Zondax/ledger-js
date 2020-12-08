@@ -62,6 +62,3 @@ typings/
 
 \.idea/
 
-browser/ledger\.js
-
-browser/chrome-u2f-api\.js
