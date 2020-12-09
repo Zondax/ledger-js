@@ -16,3 +16,14 @@
  ******************************************************************************* */
 
 import {serializePath, printBIP44Path} from "./paths";
+
+export const PAYLOAD_TYPE = {
+  INIT: 0x00,
+  ADD: 0x01,
+  LAST: 0x02,
+};
+
+export const P1_VALUES = {
+  ONLY_RETRIEVE: 0x00,
+  SHOW_ADDRESS_IN_DEVICE: 0x01,
+};
