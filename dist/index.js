@@ -3,9 +3,41 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+Object.defineProperty(exports, "serializePath", {
+  enumerable: true,
+  get: function get() {
+    return _paths.serializePath;
+  }
+});
+Object.defineProperty(exports, "printBIP44Path", {
+  enumerable: true,
+  get: function get() {
+    return _paths.printBIP44Path;
+  }
+});
+Object.defineProperty(exports, "ERROR_DESCRIPTION", {
+  enumerable: true,
+  get: function get() {
+    return _errors.ERROR_DESCRIPTION;
+  }
+});
+Object.defineProperty(exports, "errorCodeToString", {
+  enumerable: true,
+  get: function get() {
+    return _errors.errorCodeToString;
+  }
+});
+Object.defineProperty(exports, "processErrorResponse", {
+  enumerable: true,
+  get: function get() {
+    return _errors.processErrorResponse;
+  }
+});
 exports.P1_VALUES = exports.PAYLOAD_TYPE = void 0;
 
 var _paths = require("./paths");
+
+var _errors = require("./errors");
 
 /** ******************************************************************************
  *  (c) 2019-2020 Zondax GmbH

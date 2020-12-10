@@ -16,6 +16,7 @@
  ******************************************************************************* */
 
 import {serializePath, printBIP44Path} from "./paths";
+import {ERROR_DESCRIPTION, errorCodeToString, processErrorResponse} from "./errors";
 
 export const PAYLOAD_TYPE = {
   INIT: 0x00,
@@ -27,3 +28,11 @@ export const P1_VALUES = {
   ONLY_RETRIEVE: 0x00,
   SHOW_ADDRESS_IN_DEVICE: 0x01,
 };
+
+export {
+  serializePath,
+  printBIP44Path,
+  ERROR_DESCRIPTION,
+  errorCodeToString,
+  processErrorResponse
+}
