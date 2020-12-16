@@ -1,16 +1,5 @@
 import Transport from "@ledgerhq/hw-transport";
 
-export enum PAYLOAD_TYPE {
-  INIT= 0x00,
-  ADD= 0x01,
-  LAST= 0x02,
-}
-
-export enum P1_VALUES {
-  ONLY_RETRIEVE= 0x00,
-  SHOW_ADDRESS_IN_DEVICE= 0x01,
-}
-
 export const ERROR_DESCRIPTION : { [code: number]: string };
 
 export interface ResponseBase {
