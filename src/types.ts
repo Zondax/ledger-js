@@ -45,5 +45,6 @@ export interface ConstructorParams {
   cla: number;
   ins: INSGeneric;
   p1Values: P1_VALUESGeneric;
+  chunkSize: number;
   acceptedPathLengths?: number[];
 }

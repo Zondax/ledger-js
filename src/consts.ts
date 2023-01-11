@@ -16,8 +16,6 @@
  *******************************************************************************
  */
 
-export const CHUNK_SIZE = 250;
-
 export const PAYLOAD_TYPE = {
   INIT: 0x00,
   ADD: 0x01,

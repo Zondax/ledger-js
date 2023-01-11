@@ -2,7 +2,7 @@
   "name": "@zondax/ledger-js",
   "author": "Zondax AG",
   "license": "Apache-2.0",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "TS / Node API for apps running on Ledger Nano S/S+/X",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

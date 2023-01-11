@@ -16,12 +16,14 @@ export default class GenericApp {
   readonly INS: INSGeneric;
   readonly P1_VALUES: P1_VALUESGeneric;
   readonly acceptedPathLengths?: number[];
+  readonly CHUNK_SIZE: number;
 
   constructor(transport: Transport, params: ConstructorParams) {
     this.transport = transport;
     this.CLA = params.cla;
     this.INS = params.ins;
     this.P1_VALUES = params.p1Values;
+    this.CHUNK_SIZE = params.chunkSize;
     this.acceptedPathLengths = params.acceptedPathLengths;
   }
 
@@ -54,6 +56,27 @@ export default class GenericApp {
       buf.writeUInt32LE(value, 4 * i);
     }
     return buf;
+  }
+
+  prepareChunks(path: string, message: Buffer): Buffer[] {
+    const chunks = [];
+    const serializedPathBuffer = this.serializePath(path);
+
+    // First chunk (only path)
+    chunks.push(serializedPathBuffer);
+
+    const messageBuffer = Buffer.from(message);
+
+    const buffer = Buffer.concat([messageBuffer]);
+    for (let i = 0; i < buffer.length; i += this.CHUNK_SIZE) {
+      let end = i + this.CHUNK_SIZE;
+      if (i > buffer.length) {
+        end = buffer.length;
+      }
+      chunks.push(buffer.subarray(i, end));
+    }
+
+    return chunks;
   }
 
   async getVersion(): Promise<ResponseVersion> {
