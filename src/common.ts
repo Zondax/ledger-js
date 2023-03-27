@@ -16,9 +16,9 @@
  *******************************************************************************
  */
 
-import { ERROR_DESCRIPTION, LedgerError } from "./consts";
+import { ERROR_DESCRIPTION, type LedgerError } from "./consts";
 
-import { ResponseBase } from "./types";
+import { type ResponseBase } from "./types";
 
 export function errorCodeToString(returnCode: LedgerError): string {
   if (returnCode in ERROR_DESCRIPTION) return ERROR_DESCRIPTION[returnCode];

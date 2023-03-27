@@ -1,13 +1,13 @@
-import Transport from "@ledgerhq/hw-transport";
+import type Transport from "@ledgerhq/hw-transport";
 import { errorCodeToString, processErrorResponse } from "./common";
 import { LedgerError } from "./consts";
 import {
-  ConstructorParams,
-  INSGeneric,
-  P1_VALUESGeneric,
-  ResponseAppInfo,
-  ResponseDeviceInfo,
-  ResponseVersion,
+  type ConstructorParams,
+  type INSGeneric,
+  type P1_VALUESGeneric,
+  type ResponseAppInfo,
+  type ResponseDeviceInfo,
+  type ResponseVersion,
 } from "./types";
 
 export default class GenericApp {
