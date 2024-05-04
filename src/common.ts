@@ -36,16 +36,19 @@ export function processErrorResponse(response: any): ResponseBase {
       return {
         returnCode: response.statusCode,
         errorMessage: errorCodeToString(response.statusCode),
-      };
-    } else if (Object.prototype.hasOwnProperty.call(response, 'returnCode') && Object.prototype.hasOwnProperty.call(response, 'errorMessage')) {
-      return response;
+      }
+    } else if (
+      Object.prototype.hasOwnProperty.call(response, 'returnCode') &&
+      Object.prototype.hasOwnProperty.call(response, 'errorMessage')
+    ) {
+      return response
     }
   }
 
   // If response is not a dictionary or does not contain the expected properties, handle as unknown error
-  const unknownStatusCode = LedgerError.UnknownTransportError;
+  const unknownStatusCode = LedgerError.UnknownTransportError
   return {
     returnCode: unknownStatusCode,
     errorMessage: errorCodeToString(unknownStatusCode),
-  };
+  }
 }

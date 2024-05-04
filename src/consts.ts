@@ -45,7 +45,7 @@ export const enum LedgerError {
   AppDoesNotSeemToBeOpen = 0x6e01,
   UnknownError = 0x6f00,
   SignVerifyError = 0x6f01,
-  UnknownTransportError = 0xFFFF,
+  UnknownTransportError = 0xffff,
 }
 
 export const ERROR_DESCRIPTION: Readonly<Record<LedgerError, string>> = {

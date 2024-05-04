@@ -71,10 +71,10 @@ describe('BaseApp', () => {
       const responseBuffer = Buffer.concat([
         Buffer.from([0, 1, 2, 3]), // Version information
         Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
-      ]);
+      ])
 
-      const transport = new MockTransport(responseBuffer);
-      const app = new BaseApp(transport, params);
+      const transport = new MockTransport(responseBuffer)
+      const app = new BaseApp(transport, params)
       const version = await app.getVersion()
 
       expect(version).toEqual({
@@ -82,10 +82,10 @@ describe('BaseApp', () => {
         minor: 2,
         patch: 3,
         deviceLocked: false,
-        errorMessage: "No errors",
+        errorMessage: 'No errors',
         returnCode: 36864,
-        targetId: "0",
-        testMode: false
+        targetId: '0',
+        testMode: false,
       })
     })
 
@@ -95,7 +95,7 @@ describe('BaseApp', () => {
       const app = new BaseApp(transport, params)
       const version = await app.getVersion()
       expect(version.returnCode).toBe(LedgerError.UnknownTransportError)
-      expect(version.errorMessage).toBe("Unknown transport error")
+      expect(version.errorMessage).toBe('Unknown transport error')
     })
   })
 
@@ -124,7 +124,7 @@ describe('BaseApp', () => {
       const app = new BaseApp(transport, params)
       const appInfo = await app.appInfo()
       expect(appInfo.returnCode).toBe(LedgerError.UnknownTransportError)
-      expect(appInfo.errorMessage).toBe("Unknown transport error")
+      expect(appInfo.errorMessage).toBe('Unknown transport error')
     })
   })
 
@@ -156,7 +156,7 @@ describe('BaseApp', () => {
       const app = new BaseApp(transport, params)
       const deviceInfo = await app.deviceInfo()
       expect(deviceInfo.returnCode).toBe(LedgerError.UnknownTransportError)
-      expect(deviceInfo.errorMessage).toBe("Unknown transport error")
+      expect(deviceInfo.errorMessage).toBe('Unknown transport error')
     })
   })
 })

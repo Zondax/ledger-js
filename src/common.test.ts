@@ -49,7 +49,7 @@ describe('processErrorResponse', () => {
     const response = { someOtherKey: 123 }
     const expectedResponse = {
       returnCode: LedgerError.UnknownTransportError,
-      errorMessage: "Unknown transport error",
+      errorMessage: 'Unknown transport error',
     }
     expect(processErrorResponse(response)).toEqual(expectedResponse)
   })

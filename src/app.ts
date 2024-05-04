@@ -119,10 +119,10 @@ export default class BaseApp {
       const errorCodeData = res.subarray(-2)
       const returnCode = errorCodeData[0] * 256 + errorCodeData[1]
 
-      let targetId = 0;
+      let targetId = 0
 
       if (res.length >= 9) {
-        targetId = res.readUInt32BE(5);
+        targetId = res.readUInt32BE(5)
       }
 
       return {
