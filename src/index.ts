@@ -1,6 +1,5 @@
-/**
- *******************************************************************************
- *  (c) 2018 - 2022 Zondax AG
+/*******************************************************************************
+ *  (c) 2018 - 2024 Zondax AG
  *  (c) 2016-2017 Ledger
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +13,12 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *******************************************************************************
- */
+ *******************************************************************************/
+import BaseApp from './app'
 
-import GenericApp from "./GenericApp";
+export default BaseApp
 
-export default GenericApp;
-
-export type { default as Transport } from "@ledgerhq/hw-transport";
-export * from "./common";
-export * from "./consts";
-export * from "./types";
+export type { default as Transport } from '@ledgerhq/hw-transport'
+export * from './common'
+export * from './consts'
+export * from './types'
