@@ -118,8 +118,13 @@ export default class BaseApp {
     const versionResponse: ResponseVersion = await this.transport.send(this.CLA, this.INS.GET_VERSION, 0, 0).then((res: Buffer) => {
       const errorCodeData = res.subarray(-2)
       const returnCode = errorCodeData[0] * 256 + errorCodeData[1]
-      let targetId = 0
-      if (res.length >= 9) targetId = (res[5] << 24) + (res[6] << 16) + (res[7] << 8) + (res[8] << 0)
+
+      let targetId = 0;
+
+      if (res.length >= 9) {
+        targetId = res.readUInt32BE(5);
+      }
+
       return {
         returnCode,
         errorMessage: errorCodeToString(returnCode),

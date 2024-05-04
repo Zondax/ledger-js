@@ -14,12 +14,14 @@
  *  limitations under the License.
  *****************************************************************************/
 
-export const PAYLOAD_TYPE = {
+// Payload types for transactions
+export const PAYLOAD_TYPE: Readonly<Record<string, number>> = {
   INIT: 0x00,
   ADD: 0x01,
   LAST: 0x02,
 }
 
+// Ledger error codes and descriptions
 export const enum LedgerError {
   U2FUnknown = 1,
   U2FBadRequest = 2,
@@ -43,9 +45,10 @@ export const enum LedgerError {
   AppDoesNotSeemToBeOpen = 0x6e01,
   UnknownError = 0x6f00,
   SignVerifyError = 0x6f01,
+  UnknownTransportError = 0xFFFF,
 }
 
-export const ERROR_DESCRIPTION: Record<LedgerError, string> = {
+export const ERROR_DESCRIPTION: Readonly<Record<LedgerError, string>> = {
   [LedgerError.U2FUnknown]: 'U2F: Unknown',
   [LedgerError.U2FBadRequest]: 'U2F: Bad request',
   [LedgerError.U2FConfigurationUnsupported]: 'U2F: Configuration unsupported',
@@ -68,4 +71,5 @@ export const ERROR_DESCRIPTION: Record<LedgerError, string> = {
   [LedgerError.AppDoesNotSeemToBeOpen]: 'App does not seem to be open',
   [LedgerError.UnknownError]: 'Unknown error',
   [LedgerError.SignVerifyError]: 'Sign/verify error',
+  [LedgerError.UnknownTransportError]: 'Unknown transport error',
 }

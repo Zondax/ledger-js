@@ -12,7 +12,7 @@ module.exports = {
       project: 'tsconfig.json',
     },
   },
-  ignores: ['dist/'],
+  ignores: ['dist/*', "node_modules/*"],
   plugins: {
     'unused-imports': require('eslint-plugin-unused-imports'),
     '@typescript-eslint': require('@typescript-eslint/eslint-plugin'),

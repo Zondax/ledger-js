@@ -1,64 +1,67 @@
 {
   "name": "@zondax/ledger-js",
-  "author": "Zondax AG",
-  "license": "Apache-2.0",
   "version": "0.3.0",
   "description": "TS / Node API for apps running on Ledger devices",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Zondax/ledger-js.git"
-  },
   "keywords": [
     "Ledger",
     "Typescript",
     "Javascript",
     "Zondax"
   ],
+  "homepage": "https://github.com/Zondax/ledger-js",
   "bugs": {
     "url": "https://github.com/Zondax/ledger-js/issues"
   },
-  "homepage": "https://github.com/Zondax/ledger-js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zondax/ledger-js.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Zondax AG",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "copy-files": "copyfiles -u 0 src/**/*.proto dist/",
+    "format": "FORCE_COLOR=1 prettier --write . && sort-package-json",
+    "format:check": "FORCE_COLOR=1 prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "supported": "ts-node src/cmd/cli.ts supported",
+    "test:integration": "yarn build && jest -t 'Integration'",
+    "test:key-derivation": "yarn build && jest -t 'KeyDerivation'",
+    "upgrade": "bunx npm-check-updates -i"
+  },
   "dependencies": {
     "@ledgerhq/hw-transport": "6.30.6"
   },
   "devDependencies": {
+    "@ledgerhq/hw-transport-mocker": "^6.28.6",
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@types/jest": "29.5.12",
     "@types/node": "^18.11.18",
     "@typescript-eslint/eslint-plugin": "^7.8.0",
     "@typescript-eslint/parser": "^7.8.0",
-    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
     "eslint": "^9.2.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-config-standard-with-typescript": "^34.0.1",
-    "eslint-plugin-tsdoc": "^0.2.17",
-    "eslint-plugin-unused-imports": "^3.2.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^17.4.0",
     "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-tsdoc": "^0.2.17",
+    "eslint-plugin-unused-imports": "^3.2.0",
     "prettier": "^3.2.5",
-    "typescript": "^5.4.5",
-    "ts-jest": "^29.1.2"
-  },
-  "files": [
-    "dist/**"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "scripts": {
-    "build": "tsc",
-    "copy-files": "copyfiles -u 0 src/**/*.proto dist/",
-    "test:integration": "yarn build && jest -t 'Integration'",
-    "test:key-derivation": "yarn build && jest -t 'KeyDerivation'",
-    "supported": "ts-node src/cmd/cli.ts supported",
-    "lint": "eslint .",
-    "lint:fix": "eslint --fix .",
-    "upgrade": "bunx npm-check-updates -i",
-    "format": "prettier -w ."
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.4.5"
   },
   "volta": {
     "node": "20.11.1",
     "bun": "1.0.20"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
