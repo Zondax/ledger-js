@@ -16,7 +16,7 @@
 import type Transport from '@ledgerhq/hw-transport'
 
 import { errorCodeToString, processErrorResponse } from './common'
-import { LedgerError } from './consts'
+import { HARDENED, LedgerError, PAYLOAD_TYPE } from './consts'
 import {
   type ConstructorParams,
   type INSGeneric,
@@ -50,7 +50,9 @@ export default class BaseApp {
    * @throws {Error} If the path format is incorrect or invalid.
    */
   serializePath(path: string): Buffer {
-    const HARDENED = 0x80000000
+    if (typeof path !== 'string') {
+      throw new Error("Path should be a string (e.g \"m/44'/461'/5'/0/3\")")
+    }
 
     if (!path.startsWith('m/')) {
       throw new Error('Path should start with "m/" (e.g "m/44\'/5757\'/5\'/0/3")')
@@ -67,15 +69,18 @@ export default class BaseApp {
 
     pathArray.forEach((child, i) => {
       let value = 0
+
       if (child.endsWith("'")) {
         value += HARDENED
         child = child.slice(0, -1)
       }
+
       const numChild = Number(child)
 
       if (Number.isNaN(numChild)) {
         throw new Error(`Invalid path : ${child} is not a number. (e.g "m/44'/461'/5'/0/3")`)
       }
+
       if (numChild >= HARDENED) {
         throw new Error('Incorrect child value (bigger or equal to 0x80000000)')
       }
@@ -108,6 +113,31 @@ export default class BaseApp {
     }
 
     return chunks
+  }
+
+  async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer) {
+    let payloadType = PAYLOAD_TYPE.ADD
+
+    if (chunkIdx === 1) {
+      payloadType = PAYLOAD_TYPE.INIT
+    }
+
+    if (chunkIdx === chunkNum) {
+      payloadType = PAYLOAD_TYPE.LAST
+    }
+
+    return this.transport.send(this.CLA, ins, payloadType, 0, chunk, [0x9000, 0x6984, 0x6a80]).then(response => {
+      const errorCodeData = response.subarray(-2)
+      const returnCode = errorCodeData[0] * 256 + errorCodeData[1]
+
+      let errorMessage = errorCodeToString(returnCode)
+
+      if (returnCode === LedgerError.BadKeyHandle || returnCode === LedgerError.DataIsInvalid) {
+        errorMessage = `${errorMessage} : ${response.subarray(0, response.length - 2).toString('ascii')}`
+      }
+
+      return response
+    }, processErrorResponse)
   }
 
   /**

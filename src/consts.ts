@@ -14,6 +14,8 @@
  *  limitations under the License.
  *****************************************************************************/
 
+export const HARDENED = 0x80000000
+
 // Payload types for transactions
 export const PAYLOAD_TYPE: Readonly<Record<string, number>> = {
   INIT: 0x00,
