@@ -15,14 +15,15 @@
  *****************************************************************************/
 import type Transport from '@ledgerhq/hw-transport'
 
-import { errorCodeToString, processErrorResponse } from './common'
-import { HARDENED, LedgerError, PAYLOAD_TYPE } from './consts'
+import { processErrorResponse, processResponse } from './common'
+import { HARDENED, LEDGER_DASHBOARD_CLA, LedgerError, PAYLOAD_TYPE } from './consts'
 import {
   type ConstructorParams,
   type INSGeneric,
   type P1_VALUESGeneric,
   type ResponseAppInfo,
   type ResponseDeviceInfo,
+  ResponseError,
   type ResponseVersion,
 } from './types'
 
@@ -31,7 +32,7 @@ export default class BaseApp {
   readonly CLA: number
   readonly INS: INSGeneric
   readonly P1_VALUES: P1_VALUESGeneric
-  readonly acceptedPathLengths?: number[]
+  readonly ACCEPTED_PATH_LENGTHS?: number[]
   readonly CHUNK_SIZE: number
 
   constructor(transport: Transport, params: ConstructorParams) {
@@ -40,7 +41,7 @@ export default class BaseApp {
     this.INS = params.ins
     this.P1_VALUES = params.p1Values
     this.CHUNK_SIZE = params.chunkSize
-    this.acceptedPathLengths = params.acceptedPathLengths
+    this.ACCEPTED_PATH_LENGTHS = params.acceptedPathLengths
   }
 
   /**
@@ -61,13 +62,13 @@ export default class BaseApp {
     const pathArray = path.split('/')
     pathArray.shift() // remove "m"
 
-    if (this.acceptedPathLengths && !this.acceptedPathLengths.includes(pathArray.length)) {
+    if (this.ACCEPTED_PATH_LENGTHS && !this.ACCEPTED_PATH_LENGTHS.includes(pathArray.length)) {
       throw new Error("Invalid path. (e.g \"m/44'/5757'/5'/0/3\")")
     }
 
     const buf = Buffer.alloc(4 * pathArray.length)
 
-    pathArray.forEach((child, i) => {
+    pathArray.forEach((child: string, i: number) => {
       let value = 0
 
       if (child.endsWith("'")) {
@@ -115,7 +116,19 @@ export default class BaseApp {
     return chunks
   }
 
-  async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer) {
+  /**
+   * Sends a chunk of data to the device and handles the response.
+   * This method determines the payload type based on the chunk index and sends the chunk to the device.
+   * It then processes the response from the device.
+   *
+   * @param ins - The instruction byte.
+   * @param chunkIdx - The current chunk index.
+   * @param chunkNum - The total number of chunks.
+   * @param chunk - The chunk data as a buffer.
+   * @returns A promise that resolves to the processed response from the device.
+   * @throws {ResponseError} If the response from the device indicates an error.
+   */
+  async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<Buffer> {
     let payloadType = PAYLOAD_TYPE.ADD
 
     if (chunkIdx === 1) {
@@ -126,65 +139,61 @@ export default class BaseApp {
       payloadType = PAYLOAD_TYPE.LAST
     }
 
-    return this.transport.send(this.CLA, ins, payloadType, 0, chunk, [0x9000, 0x6984, 0x6a80]).then(response => {
-      const errorCodeData = response.subarray(-2)
-      const returnCode = errorCodeData[0] * 256 + errorCodeData[1]
+    const statusList = [LedgerError.NoErrors, LedgerError.DataIsInvalid, LedgerError.BadKeyHandle]
 
-      let errorMessage = errorCodeToString(returnCode)
+    const responseBuffer = await this.transport.send(this.CLA, ins, payloadType, 0, chunk, statusList)
+    const response = processResponse(responseBuffer)
 
-      if (returnCode === LedgerError.BadKeyHandle || returnCode === LedgerError.DataIsInvalid) {
-        errorMessage = `${errorMessage} : ${response.subarray(0, response.length - 2).toString('ascii')}`
-      }
-
-      return response
-    }, processErrorResponse)
+    return response
   }
-
   /**
    * Retrieves the version information from the device.
    * @returns A promise that resolves to the version information.
+   * @throws {ResponseError} If the response from the device indicates an error.
    */
   async getVersion(): Promise<ResponseVersion> {
-    const versionResponse: ResponseVersion = await this.transport.send(this.CLA, this.INS.GET_VERSION, 0, 0).then((res: Buffer) => {
-      const errorCodeData = res.subarray(-2)
-      const returnCode = errorCodeData[0] * 256 + errorCodeData[1]
+    try {
+      const responseBuffer = await this.transport.send(this.CLA, this.INS.GET_VERSION, 0, 0)
+      const response = processResponse(responseBuffer)
 
       let targetId = 0
 
-      if (res.length >= 9) {
-        targetId = res.readUInt32BE(5)
+      if (response.length >= 9) {
+        targetId = response.readUInt32BE(5)
       }
 
+      // FIXME: Add support for devices with multibyte version numbers
+
       return {
-        returnCode,
-        errorMessage: errorCodeToString(returnCode),
-        testMode: res[0] !== 0,
-        major: res[1],
-        minor: res[2],
-        patch: res[3],
-        deviceLocked: res[4] === 1,
+        testMode: response[0] !== 0,
+        major: response[1],
+        minor: response[2],
+        patch: response[3],
+        deviceLocked: response[4] === 1,
         targetId: targetId.toString(16),
       }
-    }, processErrorResponse)
-    return versionResponse
+    } catch (error) {
+      throw processErrorResponse(error)
+    }
   }
 
   /**
    * Retrieves application information from the device.
    * @returns A promise that resolves to the application information.
+   * @throws {ResponseError} If the response from the device indicates an error.
    */
   async appInfo(): Promise<ResponseAppInfo> {
-    const response: ResponseAppInfo = await this.transport.send(0xb0, 0x01, 0, 0).then((response: Buffer) => {
-      const errorCodeData = response.subarray(response.length - 2)
-      const returnCode: number = errorCodeData[0] * 256 + errorCodeData[1]
+    try {
+      const responseBuffer = await this.transport.send(LEDGER_DASHBOARD_CLA, 0x01, 0, 0)
+      const response = processResponse(responseBuffer)
 
       if (response[0] !== 1) {
-        // Ledger responds with format ID 1. There is no spec for any format != 1
-        return {
+        throw {
           returnCode: 0x9001,
           errorMessage: 'Format ID not recognized',
-        }
+        } as ResponseError
       }
+
       const appNameLen = response[1]
       const appName = response.subarray(2, 2 + appNameLen).toString('ascii')
       let idx = 2 + appNameLen
@@ -195,9 +204,8 @@ export default class BaseApp {
       const flagLen = response[idx]
       idx += 1
       const flagsValue = response[idx]
+
       return {
-        returnCode,
-        errorMessage: errorCodeToString(returnCode),
         appName,
         appVersion,
         flagLen,
@@ -207,60 +215,51 @@ export default class BaseApp {
         flagOnboarded: (flagsValue & 4) !== 0,
         flagPINValidated: (flagsValue & 128) !== 0,
       }
-    }, processErrorResponse)
-    return response
+    } catch (error) {
+      throw processErrorResponse(error)
+    }
   }
 
   /**
    * Retrieves device information from the device.
    * @returns A promise that resolves to the device information.
+   * @throws {ResponseError} If the response from the device indicates an error.
    */
   async deviceInfo(): Promise<ResponseDeviceInfo> {
-    const response: ResponseDeviceInfo = await this.transport
-      .send(0xe0, 0x01, 0, 0, Buffer.from([]), [LedgerError.NoErrors, 0x6e00])
-      .then((response: Buffer) => {
-        const errorCodeData = response.subarray(-2)
-        const returnCode = errorCodeData[0] * 256 + errorCodeData[1]
+    try {
+      const responseBuffer = await this.transport.send(0xe0, 0x01, 0, 0, Buffer.from([]), [LedgerError.NoErrors, 0x6e00])
+      const response = processResponse(responseBuffer)
 
-        if (returnCode === 0x6e00) {
-          const res: ResponseDeviceInfo = {
-            returnCode,
-            errorMessage: 'This command is only available in the Dashboard',
-          }
-          return res
-        }
+      const targetId = response.subarray(0, 4).toString('hex')
 
-        const targetId = response.subarray(0, 4).toString('hex')
+      let pos = 4
+      const secureElementVersionLen = response[pos]
+      pos += 1
+      const seVersion = response.subarray(pos, pos + secureElementVersionLen).toString()
+      pos += secureElementVersionLen
 
-        let pos = 4
-        const secureElementVersionLen = response[pos]
-        pos += 1
-        const seVersion = response.subarray(pos, pos + secureElementVersionLen).toString()
-        pos += secureElementVersionLen
+      const flagsLen = response[pos]
+      pos += 1
+      const flag = response.subarray(pos, pos + flagsLen).toString('hex')
+      pos += flagsLen
 
-        const flagsLen = response[pos]
-        pos += 1
-        const flag = response.subarray(pos, pos + flagsLen).toString('hex')
-        pos += flagsLen
+      const mcuVersionLen = response[pos]
+      pos += 1
+      // Patch issue in mcu version
+      let tmp = response.subarray(pos, pos + mcuVersionLen)
+      if (tmp[mcuVersionLen - 1] === 0) {
+        tmp = response.subarray(pos, pos + mcuVersionLen - 1)
+      }
+      const mcuVersion = tmp.toString()
 
-        const mcuVersionLen = response[pos]
-        pos += 1
-        // Patch issue in mcu version
-        let tmp = response.subarray(pos, pos + mcuVersionLen)
-        if (tmp[mcuVersionLen - 1] === 0) {
-          tmp = response.subarray(pos, pos + mcuVersionLen - 1)
-        }
-        const mcuVersion = tmp.toString()
-
-        return {
-          returnCode,
-          errorMessage: errorCodeToString(returnCode),
-          targetId,
-          seVersion,
-          flag,
-          mcuVersion,
-        }
-      }, processErrorResponse)
-    return response
+      return {
+        targetId,
+        seVersion,
+        flag,
+        mcuVersion,
+      }
+    } catch (error) {
+      throw processErrorResponse(error)
+    }
   }
 }

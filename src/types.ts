@@ -14,21 +14,25 @@
  *  limitations under the License.
  *****************************************************************************/
 
-export interface ResponseBase {
+export interface ResponseReturnCode {
   errorMessage: string
   returnCode: number
 }
 
-export interface ResponseVersion extends ResponseBase {
-  deviceLocked?: boolean
+export type ResponsePayload = Buffer
+
+export type ResponseError = ResponseReturnCode
+
+export type ResponseVersion = {
+  testMode?: boolean
   major?: number
   minor?: number
   patch?: number
-  testMode?: boolean
+  deviceLocked?: boolean
   targetId?: string
 }
 
-export interface ResponseAppInfo extends ResponseBase {
+export type ResponseAppInfo = {
   appName?: string
   appVersion?: string
   flagLen?: number
@@ -39,7 +43,7 @@ export interface ResponseAppInfo extends ResponseBase {
   flagPINValidated?: boolean
 }
 
-export interface ResponseDeviceInfo extends ResponseBase {
+export type ResponseDeviceInfo = {
   targetId?: string
   seVersion?: string
   flag?: string
