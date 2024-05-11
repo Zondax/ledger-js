@@ -82,8 +82,6 @@ describe('BaseApp', () => {
         minor: 2,
         patch: 3,
         deviceLocked: false,
-        errorMessage: 'No errors',
-        returnCode: 36864,
         targetId: '0',
         testMode: false,
       })
@@ -93,9 +91,11 @@ describe('BaseApp', () => {
       const transport = new MockTransport(Buffer.alloc(0))
       transport.exchange = jest.fn().mockRejectedValue(new Error('Unknown error'))
       const app = new BaseApp(transport, params)
-      const version = await app.getVersion()
-      expect(version.returnCode).toBe(LedgerError.UnknownTransportError)
-      expect(version.errorMessage).toBe('Unknown transport error')
+
+      await expect(app.getVersion()).rejects.toEqual({
+        returnCode: LedgerError.UnknownTransportError,
+        errorMessage: 'Unknown transport error',
+      })
     })
   })
 
@@ -122,9 +122,11 @@ describe('BaseApp', () => {
       const transport = new MockTransport(Buffer.alloc(0))
       transport.exchange = jest.fn().mockRejectedValue(new Error('App does not seem to be open'))
       const app = new BaseApp(transport, params)
-      const appInfo = await app.appInfo()
-      expect(appInfo.returnCode).toBe(LedgerError.UnknownTransportError)
-      expect(appInfo.errorMessage).toBe('Unknown transport error')
+
+      await expect(app.appInfo()).rejects.toEqual({
+        returnCode: LedgerError.UnknownTransportError,
+        errorMessage: 'Unknown transport error',
+      })
     })
   })
 
@@ -154,9 +156,10 @@ describe('BaseApp', () => {
       transport.exchange = jest.fn().mockRejectedValue(new Error('Device is busy'))
 
       const app = new BaseApp(transport, params)
-      const deviceInfo = await app.deviceInfo()
-      expect(deviceInfo.returnCode).toBe(LedgerError.UnknownTransportError)
-      expect(deviceInfo.errorMessage).toBe('Unknown transport error')
+      await expect(app.deviceInfo()).rejects.toEqual({
+        returnCode: LedgerError.UnknownTransportError,
+        errorMessage: 'Unknown transport error',
+      })
     })
   })
 })

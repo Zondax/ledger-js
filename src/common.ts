@@ -13,12 +13,25 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-import { ERROR_DESCRIPTION, LedgerError } from './consts'
-import { type ResponseBase } from './types'
+import { ERROR_DESCRIPTION_OVERRIDE, LedgerError } from './consts'
+import { ResponseError, ResponsePayload, type ResponseReturnCode } from './types'
 
 export function errorCodeToString(returnCode: LedgerError): string {
-  if (returnCode in ERROR_DESCRIPTION) return ERROR_DESCRIPTION[returnCode]
-  return `Unknown Return Code: 0x${returnCode.toString(16).toUpperCase()}`
+  const returnCodeStr = returnCode.toString(16).toUpperCase()
+  let errDescription = `Unknown Return Code: 0x${returnCodeStr}`
+
+  if (returnCode in ERROR_DESCRIPTION_OVERRIDE) {
+    errDescription = ERROR_DESCRIPTION_OVERRIDE[returnCode]
+  }
+
+  return errDescription
+}
+
+function responseBaseFrom(retCode: number): ResponseReturnCode {
+  return {
+    returnCode: retCode,
+    errorMessage: errorCodeToString(retCode),
+  }
 }
 
 function isDict(v: any): boolean {
@@ -26,29 +39,62 @@ function isDict(v: any): boolean {
 }
 
 /**
+ * Processes the raw response from a device to extract either the payload or error information.
+ * It reads the last two bytes of the response to determine the return code and constructs
+ * an appropriate response object based on this code. If the return code indicates no errors,
+ * the payload is returned directly. Otherwise, an error object is thrown.
+ *
+ * @param responseRaw - The raw response buffer from the device, potentially containing error codes or data.
+ * @returns The payload as a buffer if no errors are found.
+ * @throws {ResponseReturnCode} An object detailing the error if any is found.
+ */
+export function processResponse(responseRaw: Buffer): ResponsePayload {
+  // Ensure the buffer is large enough to contain a return code
+  if (responseRaw.length < 2) {
+    throw responseBaseFrom(LedgerError.EmptyBuffer) as ResponseError
+  }
+
+  // Determine the return code from the last two bytes of the response
+  const returnCode = responseRaw.readUInt16BE(responseRaw.length - 2)
+  let errorMessage = errorCodeToString(returnCode)
+
+  // Isolate the payload (all bytes except the last two)
+  const payload = responseRaw.subarray(0, responseRaw.length - 2)
+
+  // Directly return the payload if there are no errors
+  if (returnCode === LedgerError.NoErrors) {
+    return payload
+  }
+
+  // Append additional error message from payload if available
+  if (payload.length > 0) {
+    errorMessage += ` : ${payload.toString('ascii')}`
+  }
+
+  // Construct and throw an error object with details
+  throw {
+    returnCode: returnCode,
+    errorMessage: errorMessage,
+  } as ResponseError
+}
+
+/**
  * Processes error responses and formats them into a standardized object.
+ * This function is deprecated and should not be used in new implementations.
  * @param response - The raw response object that may contain error details.
  * @returns A standardized error response object.
  */
-export function processErrorResponse(response: any): ResponseBase {
+export function processErrorResponse(response: any): ResponseReturnCode {
   if (isDict(response)) {
     if (Object.prototype.hasOwnProperty.call(response, 'statusCode')) {
-      return {
-        returnCode: response.statusCode,
-        errorMessage: errorCodeToString(response.statusCode),
-      }
-    } else if (
-      Object.prototype.hasOwnProperty.call(response, 'returnCode') &&
-      Object.prototype.hasOwnProperty.call(response, 'errorMessage')
-    ) {
+      return responseBaseFrom(response.statusCode)
+    }
+
+    if (Object.prototype.hasOwnProperty.call(response, 'returnCode') && Object.prototype.hasOwnProperty.call(response, 'errorMessage')) {
       return response
     }
   }
 
   // If response is not a dictionary or does not contain the expected properties, handle as unknown error
-  const unknownStatusCode = LedgerError.UnknownTransportError
-  return {
-    returnCode: unknownStatusCode,
-    errorMessage: errorCodeToString(unknownStatusCode),
-  }
+  return responseBaseFrom(LedgerError.UnknownTransportError)
 }

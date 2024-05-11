@@ -1,6 +1,6 @@
 {
   "name": "@zondax/ledger-js",
-  "version": "0.3.0",
+  "version": "0.0.0",
   "description": "TS / Node API for apps running on Ledger devices",
   "keywords": [
     "Zondax",
