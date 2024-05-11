@@ -14,15 +14,6 @@
  *  limitations under the License.
  *****************************************************************************/
 
-export interface ResponseReturnCode {
-  errorMessage: string
-  returnCode: number
-}
-
-export type ResponsePayload = Buffer
-
-export type ResponseError = ResponseReturnCode
-
 export type ResponseVersion = {
   testMode?: boolean
   major?: number

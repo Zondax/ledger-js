@@ -17,6 +17,7 @@ import { MockTransport } from '@ledgerhq/hw-transport-mocker'
 
 import BaseApp from './app'
 import { LedgerError } from './consts'
+import { ResponseError } from './responseError'
 
 describe('BaseApp', () => {
   const params = {
@@ -69,7 +70,7 @@ describe('BaseApp', () => {
   describe('getVersion', () => {
     it('should retrieve version information', async () => {
       const responseBuffer = Buffer.concat([
-        Buffer.from([0, 1, 2, 3]), // Version information
+        Buffer.from([0, 1, 2, 3, 0]), // Version information
         Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
       ])
 
@@ -82,9 +83,21 @@ describe('BaseApp', () => {
         minor: 2,
         patch: 3,
         deviceLocked: false,
-        targetId: '0',
+        targetId: '',
         testMode: false,
       })
+    })
+
+    it('should handle missing data', async () => {
+      const responseBuffer = Buffer.concat([
+        Buffer.from([0, 1, 2, 3]), // Version information
+        Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
+      ])
+
+      const transport = new MockTransport(responseBuffer)
+      const app = new BaseApp(transport, params)
+
+      await expect(app.getVersion()).rejects.toEqual(new ResponseError(LedgerError.UnknownError, 'Attempt to read beyond buffer length'))
     })
 
     it('should handle errors correctly', async () => {
@@ -92,10 +105,7 @@ describe('BaseApp', () => {
       transport.exchange = jest.fn().mockRejectedValue(new Error('Unknown error'))
       const app = new BaseApp(transport, params)
 
-      await expect(app.getVersion()).rejects.toEqual({
-        returnCode: LedgerError.UnknownTransportError,
-        errorMessage: 'Unknown transport error',
-      })
+      await expect(app.getVersion()).rejects.toEqual(ResponseError.fromReturnCode(LedgerError.UnknownTransportError))
     })
   })
 
@@ -123,10 +133,7 @@ describe('BaseApp', () => {
       transport.exchange = jest.fn().mockRejectedValue(new Error('App does not seem to be open'))
       const app = new BaseApp(transport, params)
 
-      await expect(app.appInfo()).rejects.toEqual({
-        returnCode: LedgerError.UnknownTransportError,
-        errorMessage: 'Unknown transport error',
-      })
+      await expect(app.appInfo()).rejects.toEqual(ResponseError.fromReturnCode(LedgerError.UnknownTransportError))
     })
   })
 
@@ -156,10 +163,7 @@ describe('BaseApp', () => {
       transport.exchange = jest.fn().mockRejectedValue(new Error('Device is busy'))
 
       const app = new BaseApp(transport, params)
-      await expect(app.deviceInfo()).rejects.toEqual({
-        returnCode: LedgerError.UnknownTransportError,
-        errorMessage: 'Unknown transport error',
-      })
+      await expect(app.deviceInfo()).rejects.toEqual(ResponseError.fromReturnCode(LedgerError.UnknownTransportError))
     })
   })
 })

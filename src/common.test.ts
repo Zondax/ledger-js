@@ -15,6 +15,7 @@
  *****************************************************************************/
 import { errorCodeToString, processErrorResponse } from './common'
 import { LedgerError } from './consts'
+import { ResponseError } from './responseError'
 
 describe('errorCodeToString', () => {
   it('should return the correct error message for a known error code', () => {
@@ -33,10 +34,7 @@ describe('errorCodeToString', () => {
 describe('processErrorResponse', () => {
   it('should return correct response object when statusCode is present', () => {
     const response = { statusCode: 0x9000 }
-    const expectedResponse = {
-      returnCode: 0x9000,
-      errorMessage: 'No errors',
-    }
+    const expectedResponse = new ResponseError(0x9000, 'No errors')
     expect(processErrorResponse(response)).toEqual(expectedResponse)
   })
 
@@ -47,10 +45,7 @@ describe('processErrorResponse', () => {
 
   it('should return a default error response when neither statusCode nor returnCode/errorMessage are present', () => {
     const response = { someOtherKey: 123 }
-    const expectedResponse = {
-      returnCode: LedgerError.UnknownTransportError,
-      errorMessage: 'Unknown transport error',
-    }
+    const expectedResponse = ResponseError.fromReturnCode(LedgerError.UnknownTransportError)
     expect(processErrorResponse(response)).toEqual(expectedResponse)
   })
 })
