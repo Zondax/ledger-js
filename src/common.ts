@@ -14,7 +14,8 @@
  *  limitations under the License.
  *****************************************************************************/
 import { ERROR_DESCRIPTION_OVERRIDE, LedgerError } from './consts'
-import { ResponseError, ResponsePayload, type ResponseReturnCode } from './types'
+import { ResponsePayload } from './payload'
+import { ResponseError } from './responseError'
 
 export function errorCodeToString(returnCode: LedgerError): string {
   const returnCodeStr = returnCode.toString(16).toUpperCase()
@@ -25,13 +26,6 @@ export function errorCodeToString(returnCode: LedgerError): string {
   }
 
   return errDescription
-}
-
-function responseBaseFrom(retCode: number): ResponseReturnCode {
-  return {
-    returnCode: retCode,
-    errorMessage: errorCodeToString(retCode),
-  }
 }
 
 function isDict(v: any): boolean {
@@ -51,7 +45,7 @@ function isDict(v: any): boolean {
 export function processResponse(responseRaw: Buffer): ResponsePayload {
   // Ensure the buffer is large enough to contain a return code
   if (responseRaw.length < 2) {
-    throw responseBaseFrom(LedgerError.EmptyBuffer) as ResponseError
+    throw ResponseError.fromReturnCode(LedgerError.EmptyBuffer)
   }
 
   // Determine the return code from the last two bytes of the response
@@ -63,7 +57,7 @@ export function processResponse(responseRaw: Buffer): ResponsePayload {
 
   // Directly return the payload if there are no errors
   if (returnCode === LedgerError.NoErrors) {
-    return payload
+    return new ResponsePayload(payload)
   }
 
   // Append additional error message from payload if available
@@ -84,10 +78,10 @@ export function processResponse(responseRaw: Buffer): ResponsePayload {
  * @param response - The raw response object that may contain error details.
  * @returns A standardized error response object.
  */
-export function processErrorResponse(response: any): ResponseReturnCode {
+export function processErrorResponse(response: any): ResponseError {
   if (isDict(response)) {
     if (Object.prototype.hasOwnProperty.call(response, 'statusCode')) {
-      return responseBaseFrom(response.statusCode)
+      return ResponseError.fromReturnCode(response.statusCode)
     }
 
     if (Object.prototype.hasOwnProperty.call(response, 'returnCode') && Object.prototype.hasOwnProperty.call(response, 'errorMessage')) {
@@ -96,5 +90,5 @@ export function processErrorResponse(response: any): ResponseReturnCode {
   }
 
   // If response is not a dictionary or does not contain the expected properties, handle as unknown error
-  return responseBaseFrom(LedgerError.UnknownTransportError)
+  return ResponseError.fromReturnCode(LedgerError.UnknownTransportError)
 }

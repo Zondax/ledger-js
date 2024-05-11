@@ -17,13 +17,14 @@ import type Transport from '@ledgerhq/hw-transport'
 
 import { processErrorResponse, processResponse } from './common'
 import { HARDENED, LEDGER_DASHBOARD_CLA, LedgerError, PAYLOAD_TYPE } from './consts'
+import { ResponsePayload } from './payload'
+import { ResponseError } from './responseError'
 import {
   type ConstructorParams,
   type INSGeneric,
   type P1_VALUESGeneric,
   type ResponseAppInfo,
   type ResponseDeviceInfo,
-  ResponseError,
   type ResponseVersion,
 } from './types'
 
@@ -128,7 +129,7 @@ export default class BaseApp {
    * @returns A promise that resolves to the processed response from the device.
    * @throws {ResponseError} If the response from the device indicates an error.
    */
-  async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<Buffer> {
+  async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponsePayload> {
     let payloadType = PAYLOAD_TYPE.ADD
 
     if (chunkIdx === 1) {
@@ -146,6 +147,7 @@ export default class BaseApp {
 
     return response
   }
+
   /**
    * Retrieves the version information from the device.
    * @returns A promise that resolves to the version information.
@@ -156,21 +158,27 @@ export default class BaseApp {
       const responseBuffer = await this.transport.send(this.CLA, this.INS.GET_VERSION, 0, 0)
       const response = processResponse(responseBuffer)
 
-      let targetId = 0
+      const testMode = response.readBytes(1).readUInt8() !== 0
+      const major = response.readBytes(1).readUInt8()
+      const minor = response.readBytes(1).readUInt8()
+      const patch = response.readBytes(1).readUInt8()
 
-      if (response.length >= 9) {
-        targetId = response.readUInt32BE(5)
+      const deviceLocked = response.readBytes(1).readUInt8() === 1
+
+      let targetId = ''
+      if (response.length() >= 4) {
+        targetId = response.readBytes(4).readUInt32BE().toString(16)
       }
 
       // FIXME: Add support for devices with multibyte version numbers
 
       return {
-        testMode: response[0] !== 0,
-        major: response[1],
-        minor: response[2],
-        patch: response[3],
-        deviceLocked: response[4] === 1,
-        targetId: targetId.toString(16),
+        testMode,
+        major,
+        minor,
+        patch,
+        deviceLocked,
+        targetId,
       }
     } catch (error) {
       throw processErrorResponse(error)
@@ -187,23 +195,23 @@ export default class BaseApp {
       const responseBuffer = await this.transport.send(LEDGER_DASHBOARD_CLA, 0x01, 0, 0)
       const response = processResponse(responseBuffer)
 
-      if (response[0] !== 1) {
+      const formatId = response.readBytes(1).readUInt8()
+
+      if (formatId !== 1) {
         throw {
           returnCode: 0x9001,
           errorMessage: 'Format ID not recognized',
         } as ResponseError
       }
 
-      const appNameLen = response[1]
-      const appName = response.subarray(2, 2 + appNameLen).toString('ascii')
-      let idx = 2 + appNameLen
-      const appVersionLen = response[idx]
-      idx += 1
-      const appVersion = response.subarray(idx, idx + appVersionLen).toString('ascii')
-      idx += appVersionLen
-      const flagLen = response[idx]
-      idx += 1
-      const flagsValue = response[idx]
+      const appNameLen = response.readBytes(1).readUInt8()
+      const appName = response.readBytes(appNameLen).toString('ascii')
+
+      const appVersionLen = response.readBytes(1).readUInt8()
+      const appVersion = response.readBytes(appVersionLen).toString('ascii')
+
+      const flagLen = response.readBytes(1).readUInt8()
+      const flagsValue = response.readBytes(flagLen).readUInt8()
 
       return {
         appName,
@@ -230,25 +238,22 @@ export default class BaseApp {
       const responseBuffer = await this.transport.send(0xe0, 0x01, 0, 0, Buffer.from([]), [LedgerError.NoErrors, 0x6e00])
       const response = processResponse(responseBuffer)
 
-      const targetId = response.subarray(0, 4).toString('hex')
+      const targetId = response.readBytes(4).toString('hex')
 
-      let pos = 4
-      const secureElementVersionLen = response[pos]
-      pos += 1
-      const seVersion = response.subarray(pos, pos + secureElementVersionLen).toString()
-      pos += secureElementVersionLen
+      const secureElementVersionLen = response.readBytes(1).readUInt8()
+      const seVersion = response.readBytes(secureElementVersionLen).toString()
 
-      const flagsLen = response[pos]
-      pos += 1
-      const flag = response.subarray(pos, pos + flagsLen).toString('hex')
-      pos += flagsLen
+      const flagsLen = response.readBytes(1).readUInt8()
+      const flag = response.readBytes(flagsLen).toString('hex')
 
-      const mcuVersionLen = response[pos]
-      pos += 1
+      const mcuVersionLen = response.readBytes(1).readUInt8()
+      let tmp = response.readBytes(mcuVersionLen)
+
       // Patch issue in mcu version
-      let tmp = response.subarray(pos, pos + mcuVersionLen)
-      if (tmp[mcuVersionLen - 1] === 0) {
-        tmp = response.subarray(pos, pos + mcuVersionLen - 1)
+      // Find the first zero byte and trim the buffer up to that point
+      const firstZeroIndex = tmp.indexOf(0)
+      if (firstZeroIndex !== -1) {
+        tmp = tmp.subarray(0, firstZeroIndex)
       }
       const mcuVersion = tmp.toString()
 
