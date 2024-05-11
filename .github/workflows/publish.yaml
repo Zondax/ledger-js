@@ -3,6 +3,7 @@ name: 'Publish packages'
 on:
   release:
     types:
+      - created
       - published
       - edited
     tags:
@@ -27,9 +28,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           registry-url: 'https://registry.npmjs.org'
           scope: '@zondax'
@@ -44,13 +47,18 @@ jobs:
         id: get_version
         uses: battila7/get-version-action@v2
 
+      - name: Show version
+        run: echo ${{ steps.get_version.outputs.version }}
+
       - name: Update tag
         run: |
-          echo Publishing as ${{ steps.get_version.outputs.version }}
           npm --allow-same-version --no-git-tag-version version ${{ steps.get_version.outputs.version }}
 
       - name: Publish package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_PUBLISH_AUTO }}
+          NODE_REPO_SERVER: 'https://registry.npmjs.org'
         run: |
+          npm config set registry $NODE_REPO_SERVER
+          npm config set //registry.npmjs.org/:_authToken $NODE_AUTH_TOKEN
           npm publish
