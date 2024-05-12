@@ -15,8 +15,9 @@
  *****************************************************************************/
 import type Transport from '@ledgerhq/hw-transport'
 
+import { serializePath } from './bip32'
 import { processErrorResponse, processResponse } from './common'
-import { HARDENED, LEDGER_DASHBOARD_CLA, LedgerError, PAYLOAD_TYPE } from './consts'
+import { LEDGER_DASHBOARD_CLA, LedgerError, PAYLOAD_TYPE } from './consts'
 import { ResponsePayload } from './payload'
 import { ResponseError } from './responseError'
 import {
@@ -33,7 +34,7 @@ export default class BaseApp {
   readonly CLA: number
   readonly INS: INSGeneric
   readonly P1_VALUES: P1_VALUESGeneric
-  readonly ACCEPTED_PATH_LENGTHS?: number[]
+  readonly REQUIRED_PATH_LENGTHS?: number[]
   readonly CHUNK_SIZE: number
 
   constructor(transport: Transport, params: ConstructorParams) {
@@ -42,56 +43,7 @@ export default class BaseApp {
     this.INS = params.ins
     this.P1_VALUES = params.p1Values
     this.CHUNK_SIZE = params.chunkSize
-    this.ACCEPTED_PATH_LENGTHS = params.acceptedPathLengths
-  }
-
-  /**
-   * Serializes a derivation path into a buffer.
-   * @param path - The derivation path in string format.
-   * @returns A buffer representing the serialized path.
-   * @throws {Error} If the path format is incorrect or invalid.
-   */
-  serializePath(path: string): Buffer {
-    if (typeof path !== 'string') {
-      throw new Error("Path should be a string (e.g \"m/44'/461'/5'/0/3\")")
-    }
-
-    if (!path.startsWith('m/')) {
-      throw new Error('Path should start with "m/" (e.g "m/44\'/5757\'/5\'/0/3")')
-    }
-
-    const pathArray = path.split('/')
-    pathArray.shift() // remove "m"
-
-    if (this.ACCEPTED_PATH_LENGTHS && !this.ACCEPTED_PATH_LENGTHS.includes(pathArray.length)) {
-      throw new Error("Invalid path. (e.g \"m/44'/5757'/5'/0/3\")")
-    }
-
-    const buf = Buffer.alloc(4 * pathArray.length)
-
-    pathArray.forEach((child: string, i: number) => {
-      let value = 0
-
-      if (child.endsWith("'")) {
-        value += HARDENED
-        child = child.slice(0, -1)
-      }
-
-      const numChild = Number(child)
-
-      if (Number.isNaN(numChild)) {
-        throw new Error(`Invalid path : ${child} is not a number. (e.g "m/44'/461'/5'/0/3")`)
-      }
-
-      if (numChild >= HARDENED) {
-        throw new Error('Incorrect child value (bigger or equal to 0x80000000)')
-      }
-
-      value += numChild
-      buf.writeUInt32LE(value, 4 * i)
-    })
-
-    return buf
+    this.REQUIRED_PATH_LENGTHS = params.acceptedPathLengths
   }
 
   /**
@@ -102,7 +54,7 @@ export default class BaseApp {
    */
   prepareChunks(path: string, message: Buffer): Buffer[] {
     const chunks = []
-    const serializedPathBuffer = this.serializePath(path)
+    const serializedPathBuffer = serializePath(path, this.REQUIRED_PATH_LENGTHS)
 
     // First chunk (only path)
     chunks.push(serializedPathBuffer)
