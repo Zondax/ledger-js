@@ -46,6 +46,10 @@ export default class BaseApp {
     this.REQUIRED_PATH_LENGTHS = params.acceptedPathLengths
   }
 
+  serializePath(path: string): Buffer {
+    return serializePath(path, this.REQUIRED_PATH_LENGTHS)
+  }
+
   /**
    * Prepares chunks of data to be sent to the device.
    * @param path - The derivation path.
@@ -54,7 +58,7 @@ export default class BaseApp {
    */
   prepareChunks(path: string, message: Buffer): Buffer[] {
     const chunks = []
-    const serializedPathBuffer = serializePath(path, this.REQUIRED_PATH_LENGTHS)
+    const serializedPathBuffer = this.serializePath(path)
 
     // First chunk (only path)
     chunks.push(serializedPathBuffer)
@@ -150,10 +154,7 @@ export default class BaseApp {
       const formatId = response.readBytes(1).readUInt8()
 
       if (formatId !== 1) {
-        throw {
-          returnCode: 0x9001,
-          errorMessage: 'Format ID not recognized',
-        } as ResponseError
+        throw new ResponseError(LedgerError.TechnicalProblem, 'Format ID not recognized')
       }
 
       const appNameLen = response.readBytes(1).readUInt8()
