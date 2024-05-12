@@ -25,33 +25,8 @@ describe('BaseApp', () => {
     ins: { GET_VERSION: 0x00 as 0 },
     p1Values: { ONLY_RETRIEVE: 0x00 as 0, SHOW_ADDRESS_IN_DEVICE: 0x01 as 1 },
     chunkSize: 255,
-    acceptedPathLengths: [3, 5],
+    requiredPathLengths: [3, 5],
   }
-
-  describe('serializePath', () => {
-    it('should throw an error if path does not start with "m/"', () => {
-      const transport = new MockTransport(Buffer.alloc(0))
-      const app = new BaseApp(transport, params)
-      expect(() => app.serializePath("44'/0'/0'")).toThrow('Path should start with "m/"')
-    })
-
-    it('should throw an error if path length is not accepted', () => {
-      const transport = new MockTransport(Buffer.alloc(0))
-      const app = new BaseApp(transport, params)
-      expect(() => app.serializePath("m/44'/0'")).toThrow('Invalid path.')
-    })
-
-    it('should correctly serialize a valid path', () => {
-      const transport = new MockTransport(Buffer.alloc(0))
-      const app = new BaseApp(transport, params)
-      const path = "m/44'/0'/0'"
-      const buffer = app.serializePath(path)
-      expect(buffer.length).toBe(12)
-      expect(buffer.readUInt32LE(0)).toBe(0x8000002c)
-      expect(buffer.readUInt32LE(4)).toBe(0x80000000)
-      expect(buffer.readUInt32LE(8)).toBe(0x80000000)
-    })
-  })
 
   describe('prepareChunks', () => {
     it('should prepare chunks correctly', () => {

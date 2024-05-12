@@ -87,6 +87,8 @@ export const enum LedgerError {
   FileNotFound = 0x9404,
   UserRefusedOnDevice = 0x5501,
   NotEnoughSpace = 0x5102,
+
+  GenericError = 0xffffffff,
 }
 
 export const ERROR_DESCRIPTION_OVERRIDE: Readonly<Record<LedgerError, string>> = {
@@ -144,4 +146,5 @@ export const ERROR_DESCRIPTION_OVERRIDE: Readonly<Record<LedgerError, string>> =
   [LedgerError.FileNotFound]: 'File Not Found',
   [LedgerError.UserRefusedOnDevice]: 'User Refused on Device',
   [LedgerError.NotEnoughSpace]: 'Not Enough Space',
+  [LedgerError.GenericError]: 'Generic Error',
 }
