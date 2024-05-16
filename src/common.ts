@@ -17,6 +17,12 @@ import { ERROR_DESCRIPTION_OVERRIDE, LedgerError } from './consts'
 import { ResponsePayload } from './payload'
 import { ResponseError } from './responseError'
 
+/**
+ * Converts a Ledger error code to a human-readable string.
+ *
+ * @param returnCode - The Ledger error code to convert.
+ * @returns A string describing the error code.
+ */
 export function errorCodeToString(returnCode: LedgerError): string {
   const returnCodeStr = returnCode.toString(16).toUpperCase()
   let errDescription = `Unknown Return Code: 0x${returnCodeStr}`
@@ -28,6 +34,12 @@ export function errorCodeToString(returnCode: LedgerError): string {
   return errDescription
 }
 
+/**
+ * Checks if a value is a dictionary (i.e., a plain object).
+ *
+ * @param v - The value to check.
+ * @returns True if the value is a dictionary, false otherwise.
+ */
 function isDict(v: any): boolean {
   return typeof v === 'object' && v !== null && !(v instanceof Array) && !(v instanceof Date)
 }
@@ -40,7 +52,7 @@ function isDict(v: any): boolean {
  *
  * @param responseRaw - The raw response buffer from the device, potentially containing error codes or data.
  * @returns The payload as a buffer if no errors are found.
- * @throws {ResponseReturnCode} An object detailing the error if any is found.
+ * @throws {ResponseError} An object detailing the error if any is found.
  */
 export function processResponse(responseRaw: Buffer): ResponsePayload {
   // Ensure the buffer is large enough to contain a return code
@@ -75,6 +87,7 @@ export function processResponse(responseRaw: Buffer): ResponsePayload {
 /**
  * Processes error responses and formats them into a standardized object.
  * This function is deprecated and should not be used in new implementations.
+ *
  * @param response - The raw response object that may contain error details.
  * @returns A standardized error response object.
  */

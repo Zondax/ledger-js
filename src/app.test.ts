@@ -43,7 +43,7 @@ describe('BaseApp', () => {
   })
 
   describe('getVersion', () => {
-    it('should retrieve version information', async () => {
+    it('should retrieve version information (5 bytes)', async () => {
       const responseBuffer = Buffer.concat([
         Buffer.from([0, 1, 2, 3, 0]), // Version information
         Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
@@ -63,6 +63,66 @@ describe('BaseApp', () => {
       })
     })
 
+    it('should retrieve version information (9 bytes)', async () => {
+      const responseBuffer = Buffer.concat([
+        Buffer.from([1, 2, 3, 4, 0, 0, 0, 0, 0]), // Version information
+        Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
+      ])
+
+      const transport = new MockTransport(responseBuffer)
+      const app = new BaseApp(transport, params)
+      const version = await app.getVersion()
+
+      expect(version).toEqual({
+        major: 2,
+        minor: 3,
+        patch: 4,
+        deviceLocked: false,
+        targetId: '00000000',
+        testMode: true,
+      })
+    })
+
+    it('should retrieve version information (8 bytes)', async () => {
+      const responseBuffer = Buffer.concat([
+        Buffer.from([1, 0, 7, 0, 8, 0, 9, 1]), // Version information
+        Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
+      ])
+
+      const transport = new MockTransport(responseBuffer)
+      const app = new BaseApp(transport, params)
+      const version = await app.getVersion()
+
+      expect(version).toEqual({
+        major: 7,
+        minor: 8,
+        patch: 9,
+        deviceLocked: true,
+        targetId: '',
+        testMode: true,
+      })
+    })
+
+    it('should retrieve version information (12 bytes)', async () => {
+      const responseBuffer = Buffer.concat([
+        Buffer.from([1, 1, 5, 0, 6, 0, 7, 0, 0, 0xa, 0xb, 0xc]), // Version information
+        Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
+      ])
+
+      const transport = new MockTransport(responseBuffer)
+      const app = new BaseApp(transport, params)
+      const version = await app.getVersion()
+
+      expect(version).toEqual({
+        major: 261,
+        minor: 6,
+        patch: 7,
+        deviceLocked: false,
+        targetId: '000a0b0c',
+        testMode: true,
+      })
+    })
+
     it('should handle missing data', async () => {
       const responseBuffer = Buffer.concat([
         Buffer.from([0, 1, 2, 3]), // Version information
@@ -72,7 +132,7 @@ describe('BaseApp', () => {
       const transport = new MockTransport(responseBuffer)
       const app = new BaseApp(transport, params)
 
-      await expect(app.getVersion()).rejects.toEqual(new ResponseError(LedgerError.UnknownError, 'Attempt to read beyond buffer length'))
+      await expect(app.getVersion()).rejects.toEqual(new ResponseError(LedgerError.UnknownError, 'Invalid response length'))
     })
 
     it('should handle errors correctly', async () => {

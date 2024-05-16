@@ -14,6 +14,9 @@
  *  limitations under the License.
  *****************************************************************************/
 
+/**
+ * Represents the version response from a device.
+ */
 export type ResponseVersion = {
   testMode?: boolean
   major?: number
@@ -23,6 +26,9 @@ export type ResponseVersion = {
   targetId?: string
 }
 
+/**
+ * Represents the application information response from a device.
+ */
 export type ResponseAppInfo = {
   appName?: string
   appVersion?: string
@@ -34,6 +40,9 @@ export type ResponseAppInfo = {
   flagPINValidated?: boolean
 }
 
+/**
+ * Represents the device information response.
+ */
 export type ResponseDeviceInfo = {
   targetId?: string
   seVersion?: string
@@ -41,17 +50,26 @@ export type ResponseDeviceInfo = {
   mcuVersion?: string
 }
 
+/**
+ * Interface for generic instruction set.
+ */
 export interface INSGeneric {
   GET_VERSION: 0x00
   [k: string]: number
 }
 
+/**
+ * Interface for generic P1 values.
+ */
 export interface P1_VALUESGeneric {
   ONLY_RETRIEVE: number
   SHOW_ADDRESS_IN_DEVICE: number
   [k: string]: number
 }
 
+/**
+ * Parameters for the constructor.
+ */
 export interface ConstructorParams {
   cla: number
   ins: INSGeneric

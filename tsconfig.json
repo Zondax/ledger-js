@@ -11,5 +11,9 @@
     "sourceMap": true,
     "inlineSources": true
   },
-  "exclude": ["./dist/**"]
+  "ts-node": {
+    "swc": true
+  },
+  "exclude": ["./dist/**"],
+  "include": ["src"]
 }
