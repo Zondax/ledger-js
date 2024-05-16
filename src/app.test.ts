@@ -30,8 +30,15 @@ describe('BaseApp', () => {
 
   describe('prepareChunks', () => {
     it('should prepare chunks correctly', () => {
+      // subclassing to expose protected method
+      class TestBaseApp extends BaseApp {
+        public prepareChunks(path: string, message: Buffer) {
+          return super.prepareChunks(path, message)
+        }
+      }
+
       const transport = new MockTransport(Buffer.alloc(0))
-      const app = new BaseApp(transport, params)
+      const app = new TestBaseApp(transport, params)
       const path = "m/44'/0'/0'"
       const message = Buffer.from('test message')
       const chunks = app.prepareChunks(path, message)

@@ -46,6 +46,10 @@ export default class BaseApp {
    * @param params - The constructor parameters.
    */
   constructor(transport: Transport, params: ConstructorParams) {
+    if (transport == null) {
+      throw new Error('Transport has not been defined')
+    }
+
     this.transport = transport
     this.CLA = params.cla
     this.INS = params.ins
@@ -69,7 +73,7 @@ export default class BaseApp {
    * @param message - The message to be sent.
    * @returns An array of buffers that are ready to be sent.
    */
-  prepareChunks(path: string, message: Buffer): Buffer[] {
+  protected prepareChunks(path: string, message: Buffer): Buffer[] {
     const chunks = []
     const serializedPathBuffer = this.serializePath(path)
 
@@ -98,7 +102,7 @@ export default class BaseApp {
    * @returns A promise that resolves to the processed response from the device.
    * @throws {ResponseError} If the response from the device indicates an error.
    */
-  async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponsePayload> {
+  protected async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponsePayload> {
     let payloadType = PAYLOAD_TYPE.ADD
 
     if (chunkIdx === 1) {

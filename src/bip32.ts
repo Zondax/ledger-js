@@ -20,7 +20,7 @@ import { ResponseError } from './responseError'
  * Serializes a derivation path into a buffer.
  * @param path - The derivation path in string format.
  * @returns A buffer representing the serialized path.
- * @throws {Error} If the path format is incorrect or invalid.
+ * @throws {ResponseError} If the path format is incorrect or invalid.
  */
 export function serializePath(path: string, requiredPathLengths?: number[]): Buffer {
   if (typeof path !== 'string') {
@@ -73,12 +73,15 @@ export function serializePath(path: string, requiredPathLengths?: number[]): Buf
  */
 export function numbersToBip32Path(items: number[]): string {
   if (items.length === 0) {
-    throw new Error('The items array cannot be empty.')
+    throw new ResponseError(LedgerError.GenericError, 'The items array cannot be empty.')
   }
 
   const pathArray = []
   for (let i = 0; i < items.length; i++) {
     let value = items[i]
+    if (!Number.isInteger(value) || value < 0) {
+      throw new ResponseError(LedgerError.GenericError, 'Each item must be a positive integer.')
+    }
     let child = value & ~HARDENED
 
     if (value >= HARDENED) {
@@ -90,7 +93,6 @@ export function numbersToBip32Path(items: number[]): string {
 
   return 'm/' + pathArray.join('/')
 }
-
 /**
  * Converts a buffer representing a serialized path back into a derivation path string.
  * @param buffer - The buffer representing the serialized path.
@@ -99,7 +101,7 @@ export function numbersToBip32Path(items: number[]): string {
  */
 export function bufferToBip32Path(buffer: Buffer): string {
   if (buffer.length % 4 !== 0) {
-    throw new Error('The buffer length must be a multiple of 4.')
+    throw new ResponseError(LedgerError.GenericError, 'The buffer length must be a multiple of 4.')
   }
 
   const items = []
