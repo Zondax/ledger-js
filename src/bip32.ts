@@ -81,9 +81,10 @@ export function numbersToBip32Path(items: number[]): string {
     let value = items[i]
     let child = value & ~HARDENED
 
-    pathArray.push(child.toString())
     if (value >= HARDENED) {
-      pathArray.push("'")
+      pathArray.push(`${child}'`)
+    } else {
+      pathArray.push(`${child}`)
     }
   }
 
