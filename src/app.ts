@@ -29,6 +29,9 @@ import {
   type ResponseVersion,
 } from './types'
 
+/**
+ * Base class for interacting with a Ledger device.
+ */
 export default class BaseApp {
   readonly transport: Transport
   readonly CLA: number
@@ -37,6 +40,11 @@ export default class BaseApp {
   readonly REQUIRED_PATH_LENGTHS?: number[]
   readonly CHUNK_SIZE: number
 
+  /**
+   * Constructs a new BaseApp instance.
+   * @param transport - The transport mechanism to communicate with the device.
+   * @param params - The constructor parameters.
+   */
   constructor(transport: Transport, params: ConstructorParams) {
     this.transport = transport
     this.CLA = params.cla
@@ -46,6 +54,11 @@ export default class BaseApp {
     this.REQUIRED_PATH_LENGTHS = params.acceptedPathLengths
   }
 
+  /**
+   * Serializes a derivation path into a buffer.
+   * @param path - The derivation path in string format.
+   * @returns A buffer representing the serialized path.
+   */
   serializePath(path: string): Buffer {
     return serializePath(path, this.REQUIRED_PATH_LENGTHS)
   }
@@ -54,7 +67,7 @@ export default class BaseApp {
    * Prepares chunks of data to be sent to the device.
    * @param path - The derivation path.
    * @param message - The message to be sent.
-   * @returns An array of buffers ready to be sent.
+   * @returns An array of buffers that are ready to be sent.
    */
   prepareChunks(path: string, message: Buffer): Buffer[] {
     const chunks = []
@@ -114,19 +127,42 @@ export default class BaseApp {
       const responseBuffer = await this.transport.send(this.CLA, this.INS.GET_VERSION, 0, 0)
       const response = processResponse(responseBuffer)
 
-      const testMode = response.readBytes(1).readUInt8() !== 0
-      const major = response.readBytes(1).readUInt8()
-      const minor = response.readBytes(1).readUInt8()
-      const patch = response.readBytes(1).readUInt8()
+      // valid options are
+      // test mode: 1 byte
+      // major, minor, patch: 3 byte total
+      // device locked: 1 byte
+      // targetId: 4 bytes
+      // total: 5 or 9 bytes
+      // -----
+      // test mode: 1 byte
+      // major, minor, patch: 6 byte total
+      // device locked: 1 byte
+      // targetId: 4 bytes
+      // total: 8 or 12 bytes
+
+      let testMode
+      let major, minor, patch
+
+      if (response.length() === 5 || response.length() === 9) {
+        testMode = response.readBytes(1).readUInt8() !== 0
+        major = response.readBytes(1).readUInt8()
+        minor = response.readBytes(1).readUInt8()
+        patch = response.readBytes(1).readUInt8()
+      } else if (response.length() === 8 || response.length() === 12) {
+        testMode = response.readBytes(1).readUInt8() !== 0
+        major = response.readBytes(2).readUInt16BE()
+        minor = response.readBytes(2).readUInt16BE()
+        patch = response.readBytes(2).readUInt16BE()
+      } else {
+        throw new ResponseError(LedgerError.TechnicalProblem, 'Invalid response length')
+      }
 
       const deviceLocked = response.readBytes(1).readUInt8() === 1
 
       let targetId = ''
       if (response.length() >= 4) {
-        targetId = response.readBytes(4).readUInt32BE().toString(16)
+        targetId = response.readBytes(4).readUInt32BE().toString(16).padStart(8, '0')
       }
-
-      // FIXME: Add support for devices with multibyte version numbers
 
       return {
         testMode,
@@ -140,7 +176,6 @@ export default class BaseApp {
       throw processErrorResponse(error)
     }
   }
-
   /**
    * Retrieves application information from the device.
    * @returns A promise that resolves to the application information.

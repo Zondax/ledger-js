@@ -1,3 +1,18 @@
+/******************************************************************************
+ *  (c) 2018 - 2024 Zondax AG
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *****************************************************************************/
 import { HARDENED, LedgerError } from './consts'
 import { ResponseError } from './responseError'
 
@@ -48,4 +63,49 @@ export function serializePath(path: string, requiredPathLengths?: number[]): Buf
   })
 
   return buf
+}
+
+/**
+ * Converts an array of numbers representing a serialized path back into a derivation path string.
+ * @param items - The array of numbers representing the serialized path.
+ * @returns The derivation path in string format.
+ * @throws {Error} If the array length is not a multiple of 4 or if the array contains invalid values.
+ */
+export function numbersToBip32Path(items: number[]): string {
+  if (items.length === 0) {
+    throw new Error('The items array cannot be empty.')
+  }
+
+  const pathArray = []
+  for (let i = 0; i < items.length; i++) {
+    let value = items[i]
+    let child = value & ~HARDENED
+
+    if (value >= HARDENED) {
+      pathArray.push(`${child}'`)
+    } else {
+      pathArray.push(`${child}`)
+    }
+  }
+
+  return 'm/' + pathArray.join('/')
+}
+
+/**
+ * Converts a buffer representing a serialized path back into a derivation path string.
+ * @param buffer - The buffer representing the serialized path.
+ * @returns The derivation path in string format.
+ * @throws {Error} If the buffer length is not a multiple of 4 or if the buffer contains invalid values.
+ */
+export function bufferToBip32Path(buffer: Buffer): string {
+  if (buffer.length % 4 !== 0) {
+    throw new Error('The buffer length must be a multiple of 4.')
+  }
+
+  const items = []
+  for (let i = 0; i < buffer.length; i += 4) {
+    items.push(buffer.readUInt32LE(i))
+  }
+
+  return numbersToBip32Path(items)
 }
