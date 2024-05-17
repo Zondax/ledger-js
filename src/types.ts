@@ -77,3 +77,5 @@ export interface ConstructorParams {
   chunkSize: number
   acceptedPathLengths?: number[]
 }
+
+export type BIP32Path = string
