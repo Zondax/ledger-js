@@ -15,6 +15,7 @@
  *****************************************************************************/
 import { HARDENED, LedgerError } from './consts'
 import { ResponseError } from './responseError'
+import { BIP32Path } from './types'
 
 /**
  * Serializes a derivation path into a buffer.
@@ -22,7 +23,7 @@ import { ResponseError } from './responseError'
  * @returns A buffer representing the serialized path.
  * @throws {ResponseError} If the path format is incorrect or invalid.
  */
-export function serializePath(path: string, requiredPathLengths?: number[]): Buffer {
+export function serializePath(path: BIP32Path, requiredPathLengths?: number[]): Buffer {
   if (typeof path !== 'string') {
     // NOTE: this is probably unnecessary
     throw new ResponseError(LedgerError.GenericError, "Path should be a string (e.g \"m/44'/461'/5'/0/3\")")
@@ -71,7 +72,7 @@ export function serializePath(path: string, requiredPathLengths?: number[]): Buf
  * @returns The derivation path in string format.
  * @throws {Error} If the array length is not a multiple of 4 or if the array contains invalid values.
  */
-export function numbersToBip32Path(items: number[]): string {
+export function numbersToBip32Path(items: number[]): BIP32Path {
   if (items.length === 0) {
     throw new ResponseError(LedgerError.GenericError, 'The items array cannot be empty.')
   }
@@ -99,7 +100,7 @@ export function numbersToBip32Path(items: number[]): string {
  * @returns The derivation path in string format.
  * @throws {Error} If the buffer length is not a multiple of 4 or if the buffer contains invalid values.
  */
-export function bufferToBip32Path(buffer: Buffer): string {
+export function bufferToBip32Path(buffer: Buffer): BIP32Path {
   if (buffer.length % 4 !== 0) {
     throw new ResponseError(LedgerError.GenericError, 'The buffer length must be a multiple of 4.')
   }

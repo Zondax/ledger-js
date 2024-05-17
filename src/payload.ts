@@ -18,7 +18,7 @@ import { ResponseError } from './responseError'
 
 export class ResponsePayload {
   private offset = 0
-  private internalBuffer: Buffer
+  private readonly internalBuffer: Buffer
 
   constructor(payload: Buffer) {
     this.internalBuffer = payload
