@@ -26,7 +26,7 @@ export const PAYLOAD_TYPE: Readonly<Record<string, number>> = {
 }
 
 // Ledger error codes and descriptions sorted by value
-export const enum LedgerError {
+export enum LedgerError {
   U2FUnknown = 1,
   U2FBadRequest = 2,
   U2FConfigurationUnsupported = 3,
