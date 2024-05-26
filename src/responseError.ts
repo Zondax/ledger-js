@@ -32,7 +32,6 @@ export class ResponseError extends Error {
     super(errorMessage)
     this.errorMessage = errorMessage
     this.returnCode = returnCode
-    this.name = 'ResponseReturnCode'
   }
 
   /**

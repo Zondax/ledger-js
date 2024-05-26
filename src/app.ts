@@ -100,17 +100,18 @@ export default class BaseApp {
 
   /**
    * Sends a chunk of data to the device and handles the response.
-   * This method determines the payload type based on the chunk index and sends the chunk to the device.
-   * It then processes the response from the device.
+   * Determines the payload type based on the chunk index and sends the chunk to the device.
+   * Processes the response from the device.
    *
    * @param ins - The instruction byte.
+   * @param p2 - P2 parameter byte.
    * @param chunkIdx - The current chunk index.
    * @param chunkNum - The total number of chunks.
    * @param chunk - The chunk data as a buffer.
    * @returns A promise that resolves to the processed response from the device.
    * @throws {ResponseError} If the response from the device indicates an error.
    */
-  protected async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponsePayload> {
+  protected async sendGenericChunk(ins: number, p2: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponsePayload> {
     let payloadType = PAYLOAD_TYPE.ADD
 
     if (chunkIdx === 1) {
@@ -123,10 +124,26 @@ export default class BaseApp {
 
     const statusList = [LedgerError.NoErrors, LedgerError.DataIsInvalid, LedgerError.BadKeyHandle]
 
-    const responseBuffer = await this.transport.send(this.CLA, ins, payloadType, 0, chunk, statusList)
+    const responseBuffer = await this.transport.send(this.CLA, ins, payloadType, p2, chunk, statusList)
     const response = processResponse(responseBuffer)
 
     return response
+  }
+
+  /**
+   * Sends a chunk of data to the device and handles the response.
+   * This method determines the payload type based on the chunk index and sends the chunk to the device.
+   * It then processes the response from the device.
+   *
+   * @param ins - The instruction byte.
+   * @param chunkIdx - The current chunk index.
+   * @param chunkNum - The total number of chunks.
+   * @param chunk - The chunk data as a buffer.
+   * @returns A promise that resolves to the processed response from the device.
+   * @throws {ResponseError} If the response from the device indicates an error.
+   */
+  protected async signSendChunk(ins: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponsePayload> {
+    return this.sendGenericChunk(ins, 0, chunkIdx, chunkNum, chunk)
   }
 
   /**
