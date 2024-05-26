@@ -49,6 +49,61 @@ describe('BaseApp', () => {
     })
   })
 
+  describe('messageToChunks', () => {
+    it('should split message into chunks correctly', () => {
+      // subclassing to expose protected method
+      class TestBaseApp extends BaseApp {
+        public messageToChunks(message: Buffer) {
+          return super.messageToChunks(message)
+        }
+      }
+
+      const transport = new MockTransport(Buffer.alloc(0))
+      const app = new TestBaseApp(transport, params)
+      const message = Buffer.alloc(500)
+      const chunks = app.messageToChunks(message)
+
+      expect(chunks.length).toBeGreaterThan(1)
+      chunks.forEach((chunk, index) => {
+        console.log(`Chunk ${index} size: ${chunk.length}`);
+        expect(chunk.length).toBeLessThanOrEqual(params.chunkSize);
+      });
+    })
+
+    it('should handle empty message', () => {
+      // subclassing to expose protected method
+      class TestBaseApp extends BaseApp {
+        public messageToChunks(message: Buffer) {
+          return super.messageToChunks(message)
+        }
+      }
+
+      const transport = new MockTransport(Buffer.alloc(0))
+      const app = new TestBaseApp(transport, params)
+      const message = Buffer.from('')
+      const chunks = app.messageToChunks(message)
+
+      expect(chunks.length).toBe(0)
+    })
+
+    it('should handle message exactly equal to chunk size', () => {
+      // subclassing to expose protected method
+      class TestBaseApp extends BaseApp {
+        public messageToChunks(message: Buffer) {
+          return super.messageToChunks(message)
+        }
+      }
+
+      const transport = new MockTransport(Buffer.alloc(0))
+      const app = new TestBaseApp(transport, params)
+      const message = Buffer.alloc(params.chunkSize, 'a')
+      const chunks = app.messageToChunks(message)
+
+      expect(chunks.length).toBe(1)
+      expect(chunks[0].toString()).toBe('a'.repeat(params.chunkSize))
+    })
+  })
+
   describe('getVersion', () => {
     it('should retrieve version information (5 bytes)', async () => {
       const responseBuffer = Buffer.concat([

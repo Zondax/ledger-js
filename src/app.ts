@@ -74,11 +74,19 @@ export default class BaseApp {
    * @returns An array of buffers that are ready to be sent.
    */
   protected prepareChunks(path: string, message: Buffer): Buffer[] {
-    const chunks = []
     const serializedPathBuffer = this.serializePath(path)
+    const chunks = this.messageToChunks(message)
+    chunks.unshift(serializedPathBuffer)
+    return chunks
+  }
 
-    // First chunk (only path)
-    chunks.push(serializedPathBuffer)
+  /**
+   * Splits a buffer into chunks of `this.CHUNK_SIZE` size.
+   * @param message - The message to be chunked.
+   * @returns An array of buffers, each representing a chunk of the original message.
+   */
+  protected messageToChunks(message: Buffer): Buffer[] {
+    const chunks = []
 
     const messageBuffer = Buffer.from(message)
 
