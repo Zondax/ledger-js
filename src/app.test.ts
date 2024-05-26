@@ -65,9 +65,9 @@ describe('BaseApp', () => {
 
       expect(chunks.length).toBeGreaterThan(1)
       chunks.forEach((chunk, index) => {
-        console.log(`Chunk ${index} size: ${chunk.length}`);
-        expect(chunk.length).toBeLessThanOrEqual(params.chunkSize);
-      });
+        console.log(`Chunk ${index} size: ${chunk.length}`)
+        expect(chunk.length).toBeLessThanOrEqual(params.chunkSize)
+      })
     })
 
     it('should handle empty message', () => {
