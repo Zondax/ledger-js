@@ -78,10 +78,7 @@ export function processResponse(responseRaw: Buffer): ResponsePayload {
   }
 
   // Construct and throw an error object with details
-  throw {
-    returnCode: returnCode,
-    errorMessage: errorMessage,
-  } as ResponseError
+  throw new ResponseError(returnCode, errorMessage)
 }
 
 /**

@@ -17,6 +17,7 @@ import { MockTransport } from '@ledgerhq/hw-transport-mocker'
 
 import BaseApp from './app'
 import { LedgerError } from './consts'
+import { ResponsePayload } from './payload'
 import { ResponseError } from './responseError'
 
 describe('BaseApp', () => {
@@ -101,6 +102,51 @@ describe('BaseApp', () => {
 
       expect(chunks.length).toBe(1)
       expect(chunks[0].toString()).toBe('a'.repeat(params.chunkSize))
+    })
+  })
+
+  describe('sendGenericChunk', () => {
+    class TestBaseApp extends BaseApp {
+      public async sendGenericChunk(ins: number, p2: number, chunkIdx: number, chunkNum: number, chunk: Buffer): Promise<ResponsePayload> {
+        return super.sendGenericChunk(ins, p2, chunkIdx, chunkNum, chunk)
+      }
+    }
+
+    it('should send a generic chunk and receive a response', async () => {
+      const responseBuffer = Buffer.concat([
+        Buffer.from([0x01, 0x02, 0x03]), // Example response data
+        Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
+      ])
+
+      const transport = new MockTransport(responseBuffer)
+      const app = new TestBaseApp(transport, params)
+      const chunk = Buffer.from('generic chunk data')
+      const response = await app.sendGenericChunk(0x00, 0x00, 1, 1, chunk)
+
+      expect(response.getCompleteBuffer()).toEqual(Buffer.from([0x01, 0x02, 0x03]))
+    })
+
+    it('should handle errors correctly', async () => {
+      const transport = new MockTransport(Buffer.alloc(0))
+      const expectedException = ResponseError.fromReturnCode(LedgerError.UnknownTransportError)
+
+      transport.exchange = jest.fn().mockRejectedValue(expectedException)
+      const app = new TestBaseApp(transport, params)
+
+      const someChunk = Buffer.from('generic chunk data')
+
+      await expect(app.sendGenericChunk(0x00, 0x00, 1, 1, someChunk)).rejects.toEqual(expectedException)
+    })
+
+    it('should handle specific error codes', async () => {
+      const errorBuffer = Buffer.from([0x6a, 0x80]) // Example error code (0x6a80)
+      const transport = new MockTransport(errorBuffer)
+      const app = new TestBaseApp(transport, params)
+
+      const someChunk = Buffer.from('generic chunk data')
+      const expectedException = ResponseError.fromReturnCode(0x6a80)
+
+      await expect(app.sendGenericChunk(0x00, 0x00, 1, 1, someChunk)).rejects.toEqual(expectedException)
     })
   })
 
