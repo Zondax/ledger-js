@@ -125,12 +125,12 @@ export class ByteStream {
    */
   insertBytesAt(data: Buffer, offset: number) {
     if (offset > this.internalBuffer.length) {
-        const padding = Buffer.alloc(offset - this.internalBuffer.length, 0);
-        this.internalBuffer = Buffer.concat([this.internalBuffer, padding, data]);
+      const padding = Buffer.alloc(offset - this.internalBuffer.length, 0)
+      this.internalBuffer = Buffer.concat([this.internalBuffer, padding, data])
     } else {
-        const before = this.internalBuffer.subarray(0, offset);
-        const after = this.internalBuffer.subarray(offset);
-        this.internalBuffer = Buffer.concat([before, data, after]);
+      const before = this.internalBuffer.subarray(0, offset)
+      const after = this.internalBuffer.subarray(offset)
+      this.internalBuffer = Buffer.concat([before, data, after])
     }
   }
 

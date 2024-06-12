@@ -13,8 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-
-import { ByteStream } from "./byteStream"
+import { ByteStream } from './byteStream'
 
 /**
  * Class representing a payload response for reading data.

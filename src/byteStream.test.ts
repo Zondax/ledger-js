@@ -101,13 +101,13 @@ describe('ByteStream', () => {
   })
 
   test('writeBytesAt should correctly write bytes at a given offset and advance the write offset', () => {
-    byteStream.writeBytesAt(Buffer.from([0x0A, 0x0B]), 1)
-    expect(byteStream.getCompleteBuffer()).toEqual(Buffer.from([0x01, 0x0A, 0x0B, 0x04, 0x05]))
-    expect(byteStream.readBytes(5)).toEqual(Buffer.from([0x01, 0x0A, 0x0B, 0x04, 0x05]))
+    byteStream.writeBytesAt(Buffer.from([0x0a, 0x0b]), 1)
+    expect(byteStream.getCompleteBuffer()).toEqual(Buffer.from([0x01, 0x0a, 0x0b, 0x04, 0x05]))
+    expect(byteStream.readBytes(5)).toEqual(Buffer.from([0x01, 0x0a, 0x0b, 0x04, 0x05]))
   })
 
   test('writeBytesAt should expand the buffer if necessary', () => {
-    byteStream.writeBytesAt(Buffer.from([0x0C, 0x0D]), 10)
-    expect(byteStream.getCompleteBuffer()).toEqual(Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0D]))
+    byteStream.writeBytesAt(Buffer.from([0x0c, 0x0d]), 10)
+    expect(byteStream.getCompleteBuffer()).toEqual(Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x0d]))
   })
 })
