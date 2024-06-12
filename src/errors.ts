@@ -13,14 +13,21 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-
-import { ByteStream } from "./byteStream"
+import { ERROR_DESCRIPTION_OVERRIDE, LedgerError } from './consts'
 
 /**
- * Class representing a payload response for reading data.
+ * Converts a Ledger error code to a human-readable string.
+ *
+ * @param returnCode - The Ledger error code to convert.
+ * @returns A string describing the error code.
  */
-export class ResponsePayload extends ByteStream {
-  constructor(payload: Buffer) {
-    super(payload)
+export function errorCodeToString(returnCode: LedgerError): string {
+  const returnCodeStr = returnCode.toString(16).toUpperCase()
+  let errDescription = `Unknown Return Code: 0x${returnCodeStr}`
+
+  if (returnCode in ERROR_DESCRIPTION_OVERRIDE) {
+    errDescription = ERROR_DESCRIPTION_OVERRIDE[returnCode]
   }
+
+  return errDescription
 }
