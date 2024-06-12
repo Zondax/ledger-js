@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-import { errorCodeToString } from './common'
+import { errorCodeToString } from './errors'
 
 /**
  * Class representing a response error.

@@ -13,26 +13,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-import { ERROR_DESCRIPTION_OVERRIDE, LedgerError } from './consts'
+import { LedgerError } from './consts'
+import { errorCodeToString } from './errors'
 import { ResponsePayload } from './payload'
 import { ResponseError } from './responseError'
-
-/**
- * Converts a Ledger error code to a human-readable string.
- *
- * @param returnCode - The Ledger error code to convert.
- * @returns A string describing the error code.
- */
-export function errorCodeToString(returnCode: LedgerError): string {
-  const returnCodeStr = returnCode.toString(16).toUpperCase()
-  let errDescription = `Unknown Return Code: 0x${returnCodeStr}`
-
-  if (returnCode in ERROR_DESCRIPTION_OVERRIDE) {
-    errDescription = ERROR_DESCRIPTION_OVERRIDE[returnCode]
-  }
-
-  return errDescription
-}
 
 /**
  * Checks if a value is a dictionary (i.e., a plain object).

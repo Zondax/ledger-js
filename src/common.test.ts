@@ -13,8 +13,9 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-import { errorCodeToString, processErrorResponse } from './common'
+import { processErrorResponse } from './common'
 import { LedgerError } from './consts'
+import { errorCodeToString } from './errors'
 import { ResponseError } from './responseError'
 
 describe('errorCodeToString', () => {
