@@ -231,6 +231,46 @@ describe('BaseApp', () => {
       })
     })
 
+    it('should retrieve version information (14 bytes)', async () => {
+      const responseBuffer = Buffer.concat([
+        Buffer.from([1, 0, 0, 0, 7, 0, 0, 0, 8, 0, 0, 0, 9, 1]), // Version information
+        Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
+      ])
+
+      const transport = new MockTransport(responseBuffer)
+      const app = new BaseApp(transport, params)
+      const version = await app.getVersion()
+
+      expect(version).toEqual({
+        major: 7,
+        minor: 8,
+        patch: 9,
+        deviceLocked: true,
+        targetId: '',
+        testMode: true,
+      })
+    })
+
+    it('should retrieve version information (18 bytes)', async () => {
+      const responseBuffer = Buffer.concat([
+        Buffer.from([1, 0, 0, 1, 5, 0, 0, 0, 6, 0, 0, 0, 7, 0, 0, 0xa, 0xb, 0xc]), // Version information
+        Buffer.from([0x90, 0x00]), // Status code for no errors (0x9000)
+      ])
+
+      const transport = new MockTransport(responseBuffer)
+      const app = new BaseApp(transport, params)
+      const version = await app.getVersion()
+
+      expect(version).toEqual({
+        major: 261,
+        minor: 6,
+        patch: 7,
+        deviceLocked: false,
+        targetId: '000a0b0c',
+        testMode: true,
+      })
+    })
+
     it('should handle missing data', async () => {
       const responseBuffer = Buffer.concat([
         Buffer.from([0, 1, 2, 3]), // Version information

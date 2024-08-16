@@ -168,6 +168,12 @@ export default class BaseApp {
       // device locked: 1 byte
       // targetId: 4 bytes
       // total: 8 or 12 bytes
+      // -----
+      // test mode: 1 byte
+      // major, minor, patch: 12 byte total
+      // device locked: 1 byte
+      // targetId: 4 bytes
+      // total: 14 or 18 bytes
 
       let testMode
       let major, minor, patch
@@ -182,6 +188,11 @@ export default class BaseApp {
         major = response.readBytes(2).readUInt16BE()
         minor = response.readBytes(2).readUInt16BE()
         patch = response.readBytes(2).readUInt16BE()
+      } else if (response.length() === 14 || response.length() === 18) {
+        testMode = response.readBytes(1).readUInt8() !== 0
+        major = response.readBytes(4).readUInt32BE()
+        minor = response.readBytes(4).readUInt32BE()
+        patch = response.readBytes(4).readUInt32BE()
       } else {
         throw new ResponseError(LedgerError.TechnicalProblem, 'Invalid response length')
       }
