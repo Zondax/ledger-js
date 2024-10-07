@@ -238,8 +238,17 @@ export default class BaseApp {
       const appVersionLen = response.readBytes(1).readUInt8()
       const appVersion = response.readBytes(appVersionLen).toString('ascii')
 
-      const flagLen = response.readBytes(1).readUInt8()
-      const flagsValue = response.readBytes(flagLen).readUInt8()
+      let flagLen = 0
+      let flagsValue = 0
+
+      // Flags are sent back conditionally
+      // https://github.com/LedgerHQ/ledger-secure-sdk/blob/cb5cfae5750d57e4c03460c5c93098fea7a8abcb/include/sdk_apdu_commands.h#L8-L32
+      // https://github.com/LedgerHQ/ledger-secure-sdk/blob/cb5cfae5750d57e4c03460c5c93098fea7a8abcb/src/os_io_seproxyhal.c#L1156-L1161
+      if (response.getReadOffset() < response.capacity()) {
+        flagLen = response.readBytes(1).readUInt8()
+        flagsValue = response.readBytes(flagLen).readUInt8()
+      }
+
 
       return {
         appName,
