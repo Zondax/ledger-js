@@ -25,6 +25,8 @@ export const PAYLOAD_TYPE: Readonly<Record<string, number>> = {
   LAST: 0x02,
 }
 
+export type LedgerCustomError = number
+
 // Ledger error codes and descriptions sorted by value
 export enum LedgerError {
   U2FUnknown = 1,
