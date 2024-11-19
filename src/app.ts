@@ -39,6 +39,7 @@ export default class BaseApp {
   readonly P1_VALUES: P1_VALUESGeneric
   readonly REQUIRED_PATH_LENGTHS?: number[]
   readonly CHUNK_SIZE: number
+  readonly CUSTOM_APP_ERROR_DESCRIPTION?: Readonly<Record<LedgerError, string>>
 
   /**
    * Constructs a new BaseApp instance.
@@ -56,6 +57,7 @@ export default class BaseApp {
     this.P1_VALUES = params.p1Values
     this.CHUNK_SIZE = params.chunkSize
     this.REQUIRED_PATH_LENGTHS = params.acceptedPathLengths
+    this.CUSTOM_APP_ERROR_DESCRIPTION = params.customAppErrorDescription
   }
 
   /**
@@ -125,7 +127,7 @@ export default class BaseApp {
     const statusList = [LedgerError.NoErrors, LedgerError.DataIsInvalid, LedgerError.BadKeyHandle]
 
     const responseBuffer = await this.transport.send(this.CLA, ins, payloadType, p2, chunk, statusList)
-    const response = processResponse(responseBuffer)
+    const response = processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
 
     return response
   }
@@ -154,7 +156,7 @@ export default class BaseApp {
   async getVersion(): Promise<ResponseVersion> {
     try {
       const responseBuffer = await this.transport.send(this.CLA, this.INS.GET_VERSION, 0, 0)
-      const response = processResponse(responseBuffer)
+      const response = processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
 
       // valid options are
       // test mode: 1 byte
@@ -224,7 +226,7 @@ export default class BaseApp {
   async appInfo(): Promise<ResponseAppInfo> {
     try {
       const responseBuffer = await this.transport.send(LEDGER_DASHBOARD_CLA, 0x01, 0, 0)
-      const response = processResponse(responseBuffer)
+      const response = processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
 
       const formatId = response.readBytes(1).readUInt8()
 
@@ -264,7 +266,7 @@ export default class BaseApp {
   async deviceInfo(): Promise<ResponseDeviceInfo> {
     try {
       const responseBuffer = await this.transport.send(0xe0, 0x01, 0, 0, Buffer.from([]), [LedgerError.NoErrors, 0x6e00])
-      const response = processResponse(responseBuffer)
+      const response = processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
 
       const targetId = response.readBytes(4).toString('hex')
 

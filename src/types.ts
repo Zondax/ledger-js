@@ -13,6 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
+import { LedgerCustomError } from './consts'
 
 /**
  * Represents the version response from a device.
@@ -76,6 +77,7 @@ export interface ConstructorParams {
   p1Values: P1_VALUESGeneric
   chunkSize: number
   acceptedPathLengths?: number[]
+  customAppErrorDescription?: Readonly<Record<LedgerCustomError, string>>
 }
 
 export type BIP32Path = string

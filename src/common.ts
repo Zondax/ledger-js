@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-import { LedgerError } from './consts'
+import { LedgerCustomError, LedgerError } from './consts'
 import { errorCodeToString } from './errors'
 import { ResponsePayload } from './payload'
 import { ResponseError } from './responseError'
@@ -35,10 +35,11 @@ function isDict(v: any): boolean {
  * the payload is returned directly. Otherwise, an error object is thrown.
  *
  * @param responseRaw - The raw response buffer from the device, potentially containing error codes or data.
+ * @param customErrorList - Custom error description list to convert error code with.
  * @returns The payload as a buffer if no errors are found.
  * @throws {ResponseError} An object detailing the error if any is found.
  */
-export function processResponse(responseRaw: Buffer): ResponsePayload {
+export function processResponse(responseRaw: Buffer, customErrorList?: Record<LedgerCustomError, string>): ResponsePayload {
   // Ensure the buffer is large enough to contain a return code
   if (responseRaw.length < 2) {
     throw ResponseError.fromReturnCode(LedgerError.EmptyBuffer)
@@ -46,7 +47,7 @@ export function processResponse(responseRaw: Buffer): ResponsePayload {
 
   // Determine the return code from the last two bytes of the response
   const returnCode = responseRaw.readUInt16BE(responseRaw.length - 2)
-  let errorMessage = errorCodeToString(returnCode)
+  let errorMessage = errorCodeToString(returnCode, customErrorList)
 
   // Isolate the payload (all bytes except the last two)
   const payload = responseRaw.subarray(0, responseRaw.length - 2)
@@ -70,12 +71,13 @@ export function processResponse(responseRaw: Buffer): ResponsePayload {
  * This function is deprecated and should not be used in new implementations.
  *
  * @param response - The raw response object that may contain error details.
+ * @param customErrorList - Custom error description list to convert error code with.
  * @returns A standardized error response object.
  */
-export function processErrorResponse(response: any): ResponseError {
+export function processErrorResponse(response: any, customErrorList?: Record<LedgerCustomError, string>): ResponseError {
   if (isDict(response)) {
     if (Object.prototype.hasOwnProperty.call(response, 'statusCode')) {
-      return ResponseError.fromReturnCode(response.statusCode)
+      return ResponseError.fromReturnCode(response.statusCode, customErrorList)
     }
 
     if (Object.prototype.hasOwnProperty.call(response, 'returnCode') && Object.prototype.hasOwnProperty.call(response, 'errorMessage')) {
