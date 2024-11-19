@@ -13,6 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
+import { LedgerCustomError } from './consts'
 import { errorCodeToString } from './errors'
 
 /**
@@ -37,9 +38,10 @@ export class ResponseError extends Error {
   /**
    * Creates a ResponseError instance from a return code.
    * @param returnCode - The return code to convert into a ResponseError.
+   * @param customErrorList - Custom error description list to convert error code with.
    * @returns A new instance of ResponseError.
    */
-  static fromReturnCode(returnCode: number): ResponseError {
-    return new ResponseError(returnCode, errorCodeToString(returnCode))
+  static fromReturnCode(returnCode: number, customErrorList?: Record<LedgerCustomError, string>): ResponseError {
+    return new ResponseError(returnCode, errorCodeToString(returnCode, customErrorList))
   }
 }
