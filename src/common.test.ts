@@ -14,7 +14,7 @@
  *  limitations under the License.
  *****************************************************************************/
 import { processErrorResponse } from './common'
-import { LedgerError } from './consts'
+import { LedgerCustomError, LedgerError } from './consts'
 import { errorCodeToString } from './errors'
 import { ResponseError } from './responseError'
 
@@ -23,6 +23,18 @@ describe('errorCodeToString', () => {
     const knownErrorCode: LedgerError = 0x9000
     const expectedMessage = 'No errors'
     expect(errorCodeToString(knownErrorCode)).toEqual(expectedMessage)
+  })
+
+  it('should return the correct error message for a custom error code', () => {
+    const knownErrorCode: LedgerCustomError = 0xabcd
+    const expectedMessage = 'test custom error'
+    expect(errorCodeToString(knownErrorCode, { 0xabcd: expectedMessage })).toEqual(expectedMessage)
+  })
+
+  it('should return the correct error message for a known error code, when a custom error list is passed', () => {
+    const knownErrorCode: LedgerError = 0x9000
+    const expectedMessage = 'No errors'
+    expect(errorCodeToString(knownErrorCode, { [knownErrorCode]: 'Custom no errors' })).toEqual(expectedMessage)
   })
 
   it('should return "Unknown Return Code" for an unknown error code', () => {
