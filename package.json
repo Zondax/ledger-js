@@ -52,9 +52,10 @@
     "eslint-plugin-promise": "^7.1.0",
     "eslint-plugin-tsdoc": "^0.3.0",
     "eslint-plugin-unused-imports": "^4.0.0",
+    "jest": "^30.0.5",
     "prettier": "^3.3.2",
     "sort-package-json": "^2.10.1",
-    "ts-jest": "^29.1.4",
+    "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },
