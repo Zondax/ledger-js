@@ -34,6 +34,9 @@
     "test": "yarn build && jest",
     "upgrade": "bunx npm-check-updates -i"
   },
+  "resolutions": {
+    "glob": "^11.0.0"
+  },
   "dependencies": {
     "@ledgerhq/hw-transport": "6.31.9"
   },
@@ -69,8 +72,5 @@
   "moduleDirectories": [
     "node_modules",
     "dist"
-  ],
-  "resolutions": {
-    "glob": "^11.0.0"
-  }
+  ]
 }

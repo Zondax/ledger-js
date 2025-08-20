@@ -133,7 +133,7 @@ export default class BaseApp {
       // Extract status code from error
       const statusCode: number = (e as any).statusCode || (e as any).returnCode || 0
       const message = (e as any).message
-      
+
       // Create buffer based on whether error has a message
       let buffer: Buffer
       if (message?.length > 0) {
@@ -144,7 +144,7 @@ export default class BaseApp {
         buffer = Buffer.allocUnsafe(2)
         buffer.writeUInt16BE(statusCode, 0)
       }
-      
+
       return processResponse(buffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
     }
   }
