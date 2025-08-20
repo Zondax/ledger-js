@@ -126,19 +126,27 @@ export default class BaseApp {
 
     const statusList = [LedgerError.NoErrors, LedgerError.DataIsInvalid, LedgerError.BadKeyHandle]
 
-    let responseBuffer
-
     try {
-      responseBuffer = await this.transport.send(this.CLA, ins, payloadType, p2, chunk, statusList)
+      const responseBuffer = await this.transport.send(this.CLA, ins, payloadType, p2, chunk, statusList)
+      return processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
     } catch (e) {
-      // In case transport.send send throws an Error, we still want our custom ResponseError
-      let statusCode: number = (e as any).statusCode || (e as any).returnCode
-      const buffer = Buffer.alloc(2)
-      buffer.writeUInt16BE(statusCode, 0)
+      // Extract status code from error
+      const statusCode: number = (e as any).statusCode || (e as any).returnCode || 0
+      const message = (e as any).message
+      
+      // Create buffer based on whether error has a message
+      let buffer: Buffer
+      if (message?.length > 0) {
+        const messageBytes = Buffer.from(message, 'utf8')
+        buffer = Buffer.concat([messageBytes, Buffer.allocUnsafe(2)])
+        buffer.writeUInt16BE(statusCode, buffer.length - 2)
+      } else {
+        buffer = Buffer.allocUnsafe(2)
+        buffer.writeUInt16BE(statusCode, 0)
+      }
+      
       return processResponse(buffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
     }
-
-    return processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
   }
 
   /**
