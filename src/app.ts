@@ -131,7 +131,7 @@ export default class BaseApp {
       return processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
     } catch (e) {
       // Extract status code from error
-      const statusCode: number = (e as any).statusCode || (e as any).returnCode || 0
+      const statusCode: number = (e as any).statusCode || (e as any).returnCode || LedgerError.UnknownTransportError
       const message = (e as any).message
 
       // Create buffer based on whether error has a message

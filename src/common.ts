@@ -60,7 +60,7 @@ export function processResponse(responseRaw: Buffer, customErrorList?: Record<Le
   // Append additional error message from payload if available
   // Avoid duplicating the error message if payload already contains it
   if (payload.length > 0) {
-    const payloadString = payload.toString('ascii')
+    const payloadString = payload.toString('utf8')
     if (!payloadString.includes(errorMessage)) {
       errorMessage += ` : ${payloadString}`
     } else {
