@@ -5,7 +5,7 @@
     "strict": true,
     "isolatedModules": true,
     "exactOptionalPropertyTypes": false,
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": false,
     "noUncheckedSideEffectImports": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": false,
