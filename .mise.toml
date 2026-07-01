@@ -1,0 +1,13 @@
+[tools]
+node = "22"
+bun = "latest"
+
+[tasks.ci_postinstall]
+description = "Install dependencies for CI"
+# Non-frozen: bun.lockb has pre-existing drift vs package.json and the CI bun
+# version can differ from local, so --frozen-lockfile would fail the build.
+run = "bun install"
+
+[tasks.ci_detect_pm]
+description = "Run package scripts with bun (avoids the 'bun build' bundler)"
+run = "echo 'pm=bun run'"
