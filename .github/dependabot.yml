@@ -10,7 +10,7 @@ updates:
     # Check the npm registry for updates every day (weekdays)
     schedule:
       interval: 'daily'
-    target-branch: dev
+    target-branch: main
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: 'github-actions'
@@ -22,4 +22,4 @@ updates:
       prefix: 'chore'
       prefix-development: 'chore'
       include: 'scope'
-    target-branch: dev
+    target-branch: main
