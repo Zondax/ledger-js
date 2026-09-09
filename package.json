@@ -31,6 +31,7 @@
     "format:check": "FORCE_COLOR=1 prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "prepare": "tsc",
     "test": "yarn build && jest",
     "upgrade": "bunx npm-check-updates -i"
   },
