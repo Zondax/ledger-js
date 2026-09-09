@@ -187,4 +187,31 @@ export class DMKTransport implements LedgerTransport {
 
     return Buffer.concat([Buffer.from(response.data), Buffer.from(response.statusCode)])
   }
+
+  /**
+   * No-op retained for compatibility with `@ledgerhq/hw-app-eth`.
+   *
+   * On a legacy transport this wrapped each listed method in a mutex so two app API calls
+   * could not interleave on one device. The Device Management Kit already queues every
+   * intent per session -- opting out of that queue requires the explicit
+   * `_unsafeBypassIntentQueue` escape hatch -- so the serialisation this used to add is
+   * already guaranteed underneath, and re-wrapping would only add a second lock.
+   *
+   * It exists because `hw-app-eth` calls it from its constructor, which the EVM-adjacent
+   * SDKs (Flare, Peaq, Avalanche) invoke unconditionally. Without it, merely constructing
+   * one of those apps over a DMK session throws.
+   */
+  decorateAppAPIMethods = (_self: unknown, _methods: string[], _scrambleKey: string): void => {
+    // Intentionally empty: see the note above.
+  }
+
+  /**
+   * No-op retained for compatibility with `@ledgerhq/hw-app-eth`.
+   *
+   * Scramble keys belong to the legacy HID/U2F framing that the Device Management Kit does
+   * not use. The DMK addresses a device by session, so there is nothing to scramble.
+   */
+  setScrambleKey = (_key: string): void => {
+    // Intentionally empty: see the note above.
+  }
 }

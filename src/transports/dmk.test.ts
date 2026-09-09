@@ -137,6 +137,29 @@ describe('DMKTransport', () => {
     })
   })
 
+  describe('legacy hw-app-eth hooks', () => {
+    it('survives the hw-app-eth constructor call shape', () => {
+      const transport = new DMKTransport(new FakeDMK([]), 'session-1')
+      const target = { getAddress: () => undefined }
+
+      // hw-app-eth calls exactly this from its constructor; the EVM-adjacent SDKs
+      // (Flare, Peaq, Avalanche) build an Eth instance unconditionally, so without
+      // these hooks merely constructing one over a DMK session throws.
+      expect(() => transport.decorateAppAPIMethods(target, ['getAddress'], 'w0w')).not.toThrow()
+      expect(() => transport.setScrambleKey('w0w')).not.toThrow()
+    })
+
+    it('leaves the decorated methods untouched, since the DMK already queues per session', () => {
+      const transport = new DMKTransport(new FakeDMK([]), 'session-1')
+      const getAddress = () => 'original'
+      const target = { getAddress }
+
+      transport.decorateAppAPIMethods(target, ['getAddress'], 'w0w')
+
+      expect(target.getAddress).toBe(getAddress)
+    })
+  })
+
   describe('as a BaseApp transport', () => {
     const params = {
       cla: 0x90,
