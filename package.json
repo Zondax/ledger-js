@@ -38,9 +38,6 @@
   "resolutions": {
     "glob": "^11.0.0"
   },
-  "dependencies": {
-    "@ledgerhq/hw-transport": "6.35.4"
-  },
   "devDependencies": {
     "@ledgerhq/hw-transport-mocker": "^6.34.6",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
