@@ -14,6 +14,7 @@
  *  limitations under the License.
  *****************************************************************************/
 import { LedgerError } from '../consts'
+import { errorCodeToString } from '../errors'
 import { type LedgerTransport } from '../types'
 
 /**
@@ -89,9 +90,15 @@ export class DMKTransportStatusError extends Error {
   readonly statusText: string
 
   constructor(statusCode: number) {
-    const statusText = LedgerError[statusCode] ?? 'UNKNOWN_ERROR'
+    // errorCodeToString honours ERROR_DESCRIPTION_OVERRIDE and renders unknown codes as
+    // "Unknown Return Code: 0x…". The bare `LedgerError[code]` reverse map does neither, and
+    // returns the last-declared key for the enum's duplicate values.
+    const statusText = errorCodeToString(statusCode)
     super(`Ledger device: ${statusText} (0x${statusCode.toString(16).padStart(4, '0')})`)
-    this.name = 'DMKTransportStatusError'
+    // hw-transport's TransportStatusError registers under this name for
+    // serializeError/deserializeError across a worker boundary; match it so a status code
+    // survives that round trip.
+    this.name = 'TransportStatusError'
     this.statusCode = statusCode
     this.statusText = statusText
   }
@@ -120,6 +127,9 @@ export class DMKTransport implements LedgerTransport {
   private readonly dmk: DeviceManagementKitLike
   private readonly sessionId: string
   private readonly abortTimeout?: number
+
+  /** Name of the decorated method currently in flight, or null. See decorateAppAPIMethods. */
+  private appAPILock: string | null = null
 
   /**
    * Constructs a transport bound to one Device Management Kit session.
@@ -160,7 +170,8 @@ export class DMKTransport implements LedgerTransport {
     p1: number,
     p2: number,
     data: Buffer = Buffer.alloc(0),
-    statusList: number[] = [LedgerError.NoErrors]
+    statusList: number[] = [LedgerError.NoErrors],
+    options?: { abortTimeoutMs?: number }
   ): Promise<Buffer> => {
     if (data.length > MAX_APDU_DATA_LENGTH) {
       throw new Error(`Data is too long: expected at most ${MAX_APDU_DATA_LENGTH} bytes, got ${data.length}`)
@@ -174,7 +185,24 @@ export class DMKTransport implements LedgerTransport {
     apdu[4] = data.length
     apdu.set(data, APDU_HEADER_LENGTH)
 
-    const response = await this.dmk.sendApdu({ sessionId: this.sessionId, apdu, abortTimeout: this.abortTimeout })
+    let response: ApduResponseLike
+    try {
+      response = await this.dmk.sendApdu({
+        sessionId: this.sessionId,
+        apdu,
+        abortTimeout: options?.abortTimeoutMs ?? this.abortTimeout,
+      })
+    } catch (e: any) {
+      // The DMK rejects with a `DmkError` -- a plain object carrying `_tag`, sometimes
+      // `message`, sometimes `originalError`. It is not an Error, so `e.message` is often
+      // undefined, and callers upstream fall back to "Unknown transport error" and lose the
+      // cause entirely. Rethrow something that survives that path.
+      const detail = e?.message ?? e?._tag ?? 'unknown error'
+      const wrapped = new Error(`Device Management Kit failed to send APDU: ${detail}`)
+      // `cause` is set rather than passed to the constructor so this compiles below ES2022.
+      ;(wrapped as Error & { cause?: unknown }).cause = e
+      throw wrapped
+    }
 
     if (response.statusCode.length !== STATUS_WORD_LENGTH) {
       throw new Error(`Malformed status word: expected ${STATUS_WORD_LENGTH} bytes, got ${response.statusCode.length}`)
@@ -189,20 +217,55 @@ export class DMKTransport implements LedgerTransport {
   }
 
   /**
-   * No-op retained for compatibility with `@ledgerhq/hw-app-eth`.
+   * Wraps each listed method so two app API calls cannot overlap on one device.
    *
-   * On a legacy transport this wrapped each listed method in a mutex so two app API calls
-   * could not interleave on one device. The Device Management Kit already queues every
-   * intent per session -- opting out of that queue requires the explicit
-   * `_unsafeBypassIntentQueue` escape hatch -- so the serialisation this used to add is
-   * already guaranteed underneath, and re-wrapping would only add a second lock.
+   * This is not decoration for its own sake, and it is deliberately not a no-op. The
+   * Device Management Kit does serialise traffic, but only per APDU: `sendApdu` enqueues
+   * into a FIFO intent queue that runs one exchange at a time. hw-transport's lock is
+   * coarser and stricter -- it spans an entire multi-APDU flow and *rejects* a second
+   * caller rather than queueing it.
    *
-   * It exists because `hw-app-eth` calls it from its constructor, which the EVM-adjacent
-   * SDKs (Flare, Peaq, Avalanche) invoke unconditionally. Without it, merely constructing
-   * one of those apps over a DMK session throws.
+   * That difference is observable. Given
+   *
+   *     await Promise.all([eth.signTransaction(path, tx), eth.getAddress(path)])
+   *
+   * hw-transport fails the second call immediately. A per-APDU queue instead interleaves
+   * getAddress's exchange between two signing chunks, which the device sees as a foreign
+   * APDU mid-flow. hw-app-eth's own source notes that the methods used *inside* the
+   * signTransaction flow are deliberately left undecorated for exactly this reason.
+   *
+   * So the lock is reimplemented here rather than inherited. `hw-app-eth` calls this from
+   * its constructor, which the EVM-adjacent SDKs (Flare, Peaq, Avalanche) invoke
+   * unconditionally -- so without the method existing at all, merely constructing one of
+   * those apps over a DMK session throws before a byte is sent.
    */
-  decorateAppAPIMethods = (_self: unknown, _methods: string[], _scrambleKey: string): void => {
-    // Intentionally empty: see the note above.
+  decorateAppAPIMethods = (self: Record<string, any>, methods: string[], _scrambleKey: string): void => {
+    for (const methodName of methods) {
+      const fn = self[methodName]
+      if (typeof fn !== 'function') {
+        continue
+      }
+      self[methodName] = this.lockAppAPIMethod(methodName, fn, self)
+    }
+  }
+
+  /**
+   * Returns `fn` wrapped so that only one decorated method may be in flight at a time.
+   * Mirrors `Transport.decorateAppAPIMethod` from `@ledgerhq/hw-transport`, including
+   * rejecting rather than queueing, and the wording of its error.
+   */
+  private lockAppAPIMethod(methodName: string, fn: (...args: any[]) => any, ctx: unknown) {
+    return async (...args: any[]) => {
+      if (this.appAPILock !== null) {
+        throw new Error(`Ledger Device is busy (lock ${this.appAPILock})`)
+      }
+      this.appAPILock = methodName
+      try {
+        return await fn.apply(ctx, args)
+      } finally {
+        this.appAPILock = null
+      }
+    }
   }
 
   /**

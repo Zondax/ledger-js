@@ -102,6 +102,26 @@ describe('DMKTransport', () => {
       await expect(transport.send(0x90, 0x00, 0, 0, Buffer.alloc(256))).rejects.toThrow('Data is too long')
     })
 
+    it('wraps a DMK rejection so the cause survives', async () => {
+      const dmk = {
+        sendApdu: () => Promise.reject({ _tag: 'DeviceBusyError' }),
+      }
+      const transport = new DMKTransport(dmk as any, 'session-1')
+
+      // DmkError is a plain object with no `message`, so an unwrapped rejection reaches
+      // callers as "Unknown transport error" with the cause discarded.
+      await expect(transport.send(0x90, 0x00, 0, 0)).rejects.toThrow('DeviceBusyError')
+    })
+
+    it('passes a per-call abortTimeoutMs through, overriding the constructor value', async () => {
+      const dmk = new FakeDMK([ok()])
+      const transport = new DMKTransport(dmk, 'session-1', { abortTimeout: 5000 })
+
+      await transport.send(0x90, 0x00, 0, 0, Buffer.alloc(0), [LedgerError.NoErrors], { abortTimeoutMs: 60_000 })
+
+      expect(dmk.sent[0].abortTimeout).toBe(60_000)
+    })
+
     it('rejects a malformed status word', async () => {
       const dmk = new FakeDMK([{ statusCode: Uint8Array.from([0x90]), data: Uint8Array.from([]) }])
       const transport = new DMKTransport(dmk, 'session-1')
@@ -149,14 +169,61 @@ describe('DMKTransport', () => {
       expect(() => transport.setScrambleKey('w0w')).not.toThrow()
     })
 
-    it('leaves the decorated methods untouched, since the DMK already queues per session', () => {
+    it('wraps the decorated methods rather than leaving them untouched', () => {
       const transport = new DMKTransport(new FakeDMK([]), 'session-1')
       const getAddress = () => 'original'
-      const target = { getAddress }
+      const target: Record<string, any> = { getAddress }
 
       transport.decorateAppAPIMethods(target, ['getAddress'], 'w0w')
 
-      expect(target.getAddress).toBe(getAddress)
+      expect(target.getAddress).not.toBe(getAddress)
+    })
+
+    it('still calls through, and releases the lock afterwards', async () => {
+      const transport = new DMKTransport(new FakeDMK([]), 'session-1')
+      const target: Record<string, any> = { getAddress: () => 'original' }
+
+      transport.decorateAppAPIMethods(target, ['getAddress'], 'w0w')
+
+      await expect(target.getAddress()).resolves.toBe('original')
+      // A second sequential call proves the lock was released, not leaked.
+      await expect(target.getAddress()).resolves.toBe('original')
+    })
+
+    it('rejects a second concurrent call instead of interleaving it', async () => {
+      const transport = new DMKTransport(new FakeDMK([]), 'session-1')
+      let release: () => void = () => undefined
+      const target: Record<string, any> = {
+        signTransaction: () => new Promise(resolve => (release = () => resolve('signed'))),
+        getAddress: () => 'address',
+      }
+
+      transport.decorateAppAPIMethods(target, ['signTransaction', 'getAddress'], 'w0w')
+
+      // hw-transport rejects the overlapping caller rather than queueing it, so that a
+      // second flow cannot interleave its APDUs into an in-flight multi-APDU sign. The
+      // DMK's own queue is per-APDU and would interleave, so this lock has to be ours.
+      const signing = target.signTransaction()
+      await expect(target.getAddress()).rejects.toThrow('Ledger Device is busy (lock signTransaction)')
+
+      release()
+      await expect(signing).resolves.toBe('signed')
+      // Once the flow finishes the lock is free again.
+      await expect(target.getAddress()).resolves.toBe('address')
+    })
+
+    it('releases the lock when the decorated method throws', async () => {
+      const transport = new DMKTransport(new FakeDMK([]), 'session-1')
+      const target: Record<string, any> = {
+        boom: () => {
+          throw new Error('device said no')
+        },
+      }
+
+      transport.decorateAppAPIMethods(target, ['boom'], 'w0w')
+
+      await expect(target.boom()).rejects.toThrow('device said no')
+      await expect(target.boom()).rejects.toThrow('device said no')
     })
   })
 
