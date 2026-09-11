@@ -81,3 +81,24 @@ export interface ConstructorParams {
 }
 
 export type BIP32Path = string
+
+/**
+ * The transport surface this package needs in order to talk to a device.
+ *
+ * Deliberately structural rather than a nominal dependency on `Transport` from
+ * `@ledgerhq/hw-transport`: `BaseApp` only ever calls `send`, so describing that one method
+ * lets an app accept either a legacy `Transport` or a {@link DMKTransport} built on the
+ * Device Management Kit. A `Transport` instance satisfies this interface as-is, so this is a
+ * widening — existing callers are unaffected.
+ */
+export interface LedgerTransport {
+  send: (
+    cla: number,
+    ins: number,
+    p1: number,
+    p2: number,
+    data?: Buffer,
+    statusList?: number[],
+    options?: { abortTimeoutMs?: number }
+  ) => Promise<Buffer>
+}

@@ -26,19 +26,18 @@
     "package.json"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "format": "FORCE_COLOR=1 prettier --write . && sort-package-json",
     "format:check": "FORCE_COLOR=1 prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "prepare": "tsc -p tsconfig.build.json",
     "test": "yarn build && jest",
+    "typecheck": "tsc --noEmit",
     "upgrade": "bunx npm-check-updates -i"
   },
   "resolutions": {
     "glob": "^11.0.0"
-  },
-  "dependencies": {
-    "@ledgerhq/hw-transport": "6.35.4"
   },
   "devDependencies": {
     "@ledgerhq/hw-transport-mocker": "^6.34.6",

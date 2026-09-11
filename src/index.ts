@@ -18,10 +18,25 @@ import BaseApp from './app'
 
 export default BaseApp
 
-export type { default as Transport } from '@ledgerhq/hw-transport'
+/**
+ * @deprecated Prefer {@link LedgerTransport}.
+ *
+ * This used to re-export `Transport` from `@ledgerhq/hw-transport`, which Ledger deprecated
+ * ahead of the September 2026 Device Management Kit cutoff. Carrying that re-export forced
+ * the deprecated package into the dependency tree of every SDK built on this one, so the
+ * name is now an alias for the structural type this package actually requires.
+ *
+ * A hw-transport `Transport` still satisfies it, so annotations keep compiling. The one
+ * behaviour change: the alias describes `send` only, so reaching for a hw-transport-specific
+ * member (`close`, `exchange`, `on`) through this type no longer typechecks -- import
+ * `Transport` from `@ledgerhq/hw-transport` directly if you need those.
+ */
+export type { LedgerTransport as Transport } from './types'
 export * from './common'
 export * from './consts'
+export * from './errors'
 export * from './types'
 export * from './bip32'
 export * from './responseError'
 export * from './payload'
+export * from './transports/dmk'

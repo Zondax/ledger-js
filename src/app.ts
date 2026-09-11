@@ -13,8 +13,6 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *****************************************************************************/
-import type Transport from '@ledgerhq/hw-transport'
-
 import { serializePath } from './bip32'
 import { processErrorResponse, processResponse } from './common'
 import { LEDGER_DASHBOARD_CLA, LedgerError, PAYLOAD_TYPE } from './consts'
@@ -23,6 +21,7 @@ import { ResponseError } from './responseError'
 import {
   type ConstructorParams,
   type INSGeneric,
+  type LedgerTransport,
   type P1_VALUESGeneric,
   type ResponseAppInfo,
   type ResponseDeviceInfo,
@@ -33,7 +32,7 @@ import {
  * Base class for interacting with a Ledger device.
  */
 export default class BaseApp {
-  readonly transport: Transport
+  readonly transport: LedgerTransport
   readonly CLA: number
   readonly INS: INSGeneric
   readonly P1_VALUES: P1_VALUESGeneric
@@ -46,7 +45,7 @@ export default class BaseApp {
    * @param transport - The transport mechanism to communicate with the device.
    * @param params - The constructor parameters.
    */
-  constructor(transport: Transport, params: ConstructorParams) {
+  constructor(transport: LedgerTransport, params: ConstructorParams) {
     if (transport == null) {
       throw new Error('Transport has not been defined')
     }

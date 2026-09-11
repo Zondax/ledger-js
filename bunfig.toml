@@ -1,0 +1,5 @@
+[test]
+# `bun test` is what CI runs, and it never reads jest.config.js. The build no longer emits
+# test files, but a dist/ left over from an older checkout still holds compiled copies --
+# scoping discovery to the sources keeps them from being run a second time.
+root = "src"
