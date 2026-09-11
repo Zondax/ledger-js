@@ -34,6 +34,7 @@ export default BaseApp
 export type { LedgerTransport as Transport } from './types'
 export * from './common'
 export * from './consts'
+export * from './errors'
 export * from './types'
 export * from './bip32'
 export * from './responseError'
