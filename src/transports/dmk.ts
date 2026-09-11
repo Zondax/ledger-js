@@ -15,6 +15,7 @@
  *****************************************************************************/
 import { LedgerError } from '../consts'
 import { errorCodeToString } from '../errors'
+import { ResponseError } from '../responseError'
 import { type LedgerTransport } from '../types'
 
 /**
@@ -117,7 +118,14 @@ export class DMKTransportStatusError extends Error {
  * @example
  * ```typescript
  * const dmk = new DeviceManagementKitBuilder().addTransport(webHidTransportFactory).build()
- * const sessionId = await dmk.connect({ device })
+ * const sessionId = await dmk.connect({
+ *   device,
+ *   // The DMK polls the device with GetAppAndVersion every second by default, through the
+ *   // same queue this adapter sends on. BaseApp awaits each chunk of a multi-APDU signing
+ *   // flow, so a poll can land between two chunks -- hw-transport never had background
+ *   // traffic. Disable it for the session, as Ledger Live does in its own DMK transport.
+ *   sessionRefresherOptions: { isRefresherDisabled: true },
+ * })
  *
  * const app = new MyApp(new DMKTransport(dmk, sessionId))
  * const version = await app.getVersion()
@@ -198,9 +206,13 @@ export class DMKTransport implements LedgerTransport {
       // undefined, and callers upstream fall back to "Unknown transport error" and lose the
       // cause entirely. Rethrow something that survives that path.
       const detail = e?.message ?? e?._tag ?? 'unknown error'
-      const wrapped = new Error(`Device Management Kit failed to send APDU: ${detail}`)
+      // A ResponseError rather than a bare Error: `processErrorResponse` passes objects
+      // carrying `returnCode` + `errorMessage` through untouched, but flattens anything
+      // else to "Unknown transport error" -- which is exactly the loss being avoided here.
+      // `sendGenericChunk` reads the same two fields, so both recovery paths keep the text.
+      const wrapped = new ResponseError(LedgerError.UnknownTransportError, `Device Management Kit failed to send APDU: ${detail}`)
       // `cause` is set rather than passed to the constructor so this compiles below ES2022.
-      ;(wrapped as Error & { cause?: unknown }).cause = e
+      ;(wrapped as ResponseError & { cause?: unknown }).cause = e
       throw wrapped
     }
 

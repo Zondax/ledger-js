@@ -246,6 +246,19 @@ describe('DMKTransport', () => {
       expect(Array.from(dmk.sent[0].apdu)).toEqual([0x90, 0x00, 0x00, 0x00, 0x00])
     })
 
+    it('keeps the DMK failure reason on the getVersion path, not just the chunk path', async () => {
+      // getVersion/appInfo/deviceInfo funnel errors through processErrorResponse, which
+      // flattens anything without returnCode+errorMessage to "Unknown transport error".
+      // A DMK rejection wrapped as a ResponseError must survive that with its _tag intact.
+      const dmk = { sendApdu: () => Promise.reject({ _tag: 'DeviceSessionNotFound' }) }
+      const app = new BaseApp(new DMKTransport(dmk as any, 'session-1'), params)
+
+      await expect(app.getVersion()).rejects.toMatchObject({
+        returnCode: LedgerError.UnknownTransportError,
+        errorMessage: expect.stringContaining('DeviceSessionNotFound'),
+      })
+    })
+
     it('surfaces a device error as a ResponseError', async () => {
       const dmk = new FakeDMK([{ statusCode: Uint8Array.from([0x69, 0x85]), data: Uint8Array.from([]) }])
       const app = new BaseApp(new DMKTransport(dmk, 'session-1'), params)
