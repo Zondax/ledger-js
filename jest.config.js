@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  // `test` runs a build first, so dist/ holds a compiled copy of every suite.
-  // Without this jest discovers both and runs the whole suite twice.
+  // The build no longer emits test files, but a dist/ left over from an older checkout still
+  // holds compiled copies -- ignore it so jest never runs a suite twice.
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
 }

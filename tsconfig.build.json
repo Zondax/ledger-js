@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  // The published build. `tsconfig.json` keeps the tests in the program -- type-aware eslint
+  // and `typecheck` need them there -- but they must not reach `dist/`: `files` publishes
+  // `dist/**` wholesale, and `bun test` (which is what CI runs, and which never reads
+  // `jest.config.js`) would discover the compiled copies alongside their sources and run
+  // every suite twice.
+  "exclude": ["./dist/**", "src/**/*.test.ts"]
+}

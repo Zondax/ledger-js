@@ -42,4 +42,9 @@ jobs:
 
       - run: bun lint
 
+      # `prepare` builds with tsconfig.build.json, which leaves the tests out of the
+      # program, and `bun test` strips types without checking them. Nothing else here
+      # would catch a type error in a test file.
+      - run: bun run typecheck
+
       - run: bun test
