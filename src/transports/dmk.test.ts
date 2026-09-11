@@ -16,7 +16,7 @@
 import BaseApp from '../app'
 import { LedgerError } from '../consts'
 import { ResponseError } from '../responseError'
-import { type ApduResponseLike, DMKTransport, DMKTransportStatusError, type SendApduArgsLike } from './dmk'
+import { type ApduResponseLike, DMKTransport, DMKTransportLockedError, DMKTransportStatusError, type SendApduArgsLike } from './dmk'
 
 /**
  * Minimal stand-in for a Device Management Kit instance. Records every APDU it is
@@ -146,6 +146,32 @@ describe('DMKTransport', () => {
         })
       })
 
+      it('carries the hw-transport error name, so the status code survives a worker round trip', async () => {
+        const dmk = new FakeDMK([{ statusCode: Uint8Array.from([0x69, 0x85]), data: Uint8Array.from([]) }])
+        const transport = new DMKTransport(dmk, 'session-1')
+
+        const error = await transport.send(0x90, 0x00, 0, 0).catch((e: unknown) => e)
+
+        // hw-transport's deserializeError keys off this name to rebuild the error -- and with
+        // it the statusCode -- on the far side of a worker boundary. Any other name and the
+        // status word arrives as a plain Error.
+        expect((error as Error).name).toBe('TransportStatusError')
+        expect((error as DMKTransportStatusError).statusText).toBe('Conditions of Use Not Satisfied')
+        expect((error as Error).message).toBe('Ledger device: Conditions of Use Not Satisfied (0x6985)')
+      })
+
+      it('renders an unrecognised status word instead of mislabelling it', async () => {
+        const dmk = new FakeDMK([{ statusCode: Uint8Array.from([0xab, 0xcd]), data: Uint8Array.from([]) }])
+        const transport = new DMKTransport(dmk, 'session-1')
+
+        const error = await transport.send(0x90, 0x00, 0, 0).catch((e: unknown) => e)
+
+        // The reverse `LedgerError[code]` lookup this class deliberately avoids would yield
+        // undefined here, and the last-declared key for the enum's duplicate values.
+        expect((error as DMKTransportStatusError).statusText).toBe('Unknown Return Code: 0xABCD')
+        expect((error as DMKTransportStatusError).statusCode).toBe(0xabcd)
+      })
+
       it('returns instead of throwing when the status word is in statusList', async () => {
         const dmk = new FakeDMK([{ statusCode: Uint8Array.from([0x69, 0x84]), data: Uint8Array.from([]) }])
         const transport = new DMKTransport(dmk, 'session-1')
@@ -167,6 +193,19 @@ describe('DMKTransport', () => {
       // these hooks merely constructing one over a DMK session throws.
       expect(() => transport.decorateAppAPIMethods(target, ['getAddress'], 'w0w')).not.toThrow()
       expect(() => transport.setScrambleKey('w0w')).not.toThrow()
+    })
+
+    it('skips a listed name that the target does not implement', () => {
+      const transport = new DMKTransport(new FakeDMK([]), 'session-1')
+      const getAddress = () => 'address'
+      const target: Record<string, any> = { getAddress }
+
+      // hw-app-eth decorates a fixed list of names, not everything on the instance, and the
+      // list has outlived methods before. Skipping the absent ones keeps merely constructing
+      // an app over a DMK session from throwing.
+      expect(() => transport.decorateAppAPIMethods(target, ['getAddress', 'provideERC20TokenInformation'], 'w0w')).not.toThrow()
+      expect(target.provideERC20TokenInformation).toBeUndefined()
+      expect(target.getAddress).not.toBe(getAddress)
     })
 
     it('wraps the decorated methods rather than leaving them untouched', () => {
@@ -210,6 +249,31 @@ describe('DMKTransport', () => {
       await expect(signing).resolves.toBe('signed')
       // Once the flow finishes the lock is free again.
       await expect(target.getAddress()).resolves.toBe('address')
+    })
+
+    it('rejects with the error shape hw-transport uses, not only its wording', async () => {
+      const transport = new DMKTransport(new FakeDMK([]), 'session-1')
+      let release: () => void = () => undefined
+      const target: Record<string, any> = {
+        signTransaction: () => new Promise(resolve => (release = () => resolve('signed'))),
+        getAddress: () => 'address',
+      }
+
+      transport.decorateAppAPIMethods(target, ['signTransaction', 'getAddress'], 'w0w')
+
+      const signing = target.signTransaction()
+      // hw-transport rejects with TransportError(message, 'TransportLocked'). Code that has
+      // to tell "busy, retry after the current flow" apart from a real failure branches on
+      // `name`/`id`, never on the message text, so matching the wording alone is not enough.
+      const error = await target.getAddress().catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(DMKTransportLockedError)
+      expect((error as Error).name).toBe('TransportError')
+      expect((error as DMKTransportLockedError).id).toBe('TransportLocked')
+      expect((error as Error).message).toBe('Ledger Device is busy (lock signTransaction)')
+
+      release()
+      await expect(signing).resolves.toBe('signed')
     })
 
     it('releases the lock when the decorated method throws', async () => {

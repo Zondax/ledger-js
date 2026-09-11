@@ -106,6 +106,24 @@ export class DMKTransportStatusError extends Error {
 }
 
 /**
+ * Error thrown when an app API call is attempted while another one is still in flight.
+ *
+ * Mirrors `TransportError(message, 'TransportLocked')` from `@ledgerhq/hw-transport` down to
+ * `name` and `id`, not just the wording: callers that branch on those -- Ledger's own code
+ * checks `id`, never the message text -- keep working when a DMK session is swapped in for a
+ * hw-transport one. `TransportError` is also the name hw-transport's `deserializeError`
+ * registers the class under, so the `id` survives a round trip across a worker boundary.
+ */
+export class DMKTransportLockedError extends Error {
+  readonly id: string = 'TransportLocked'
+
+  constructor(message: string) {
+    super(message)
+    this.name = 'TransportError'
+  }
+}
+
+/**
  * Adapts a Device Management Kit session to the transport surface `BaseApp` expects.
  *
  * Ledger deprecated the `@ledgerhq/hw-transport` and `@ledgerhq/hw-app-*` packages ahead of
@@ -264,12 +282,12 @@ export class DMKTransport implements LedgerTransport {
   /**
    * Returns `fn` wrapped so that only one decorated method may be in flight at a time.
    * Mirrors `Transport.decorateAppAPIMethod` from `@ledgerhq/hw-transport`, including
-   * rejecting rather than queueing, and the wording of its error.
+   * rejecting rather than queueing, and the wording and shape of its error.
    */
   private lockAppAPIMethod(methodName: string, fn: (...args: any[]) => any, ctx: unknown) {
     return async (...args: any[]) => {
       if (this.appAPILock !== null) {
-        throw new Error(`Ledger Device is busy (lock ${this.appAPILock})`)
+        throw new DMKTransportLockedError(`Ledger Device is busy (lock ${this.appAPILock})`)
       }
       this.appAPILock = methodName
       try {
