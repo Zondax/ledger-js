@@ -1,5 +1,10 @@
 module.exports = [
   {
+    // On its own, so the ignore is global. Next to other keys, `ignores` only scopes that one
+    // object's rules, and a built dist/ still gets linted under the defaults.
+    ignores: ['dist/**', 'node_modules/**'],
+  },
+  {
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -13,7 +18,6 @@ module.exports = [
         project: 'tsconfig.json',
       },
     },
-    ignores: ['dist/**', 'node_modules/**'],
     plugins: {
       'unused-imports': require('eslint-plugin-unused-imports'),
       '@typescript-eslint': require('@typescript-eslint/eslint-plugin'),
