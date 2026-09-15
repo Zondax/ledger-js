@@ -88,8 +88,11 @@ export type BIP32Path = string
  * Deliberately structural rather than a nominal dependency on `Transport` from
  * `@ledgerhq/hw-transport`: `BaseApp` only ever calls `send`, so describing that one method
  * lets an app accept either a legacy `Transport` or a {@link DMKTransport} built on the
- * Device Management Kit. A `Transport` instance satisfies this interface as-is, so this is a
- * widening — existing callers are unaffected.
+ * Device Management Kit. A `Transport` instance satisfies this interface as-is.
+ *
+ * Accepting anything other than a `DMKTransport` is deprecated: `BaseApp`'s constructor marks
+ * that overload `@deprecated` and logs a one-time warning, and the next major accepts only
+ * `DMKTransport`.
  */
 export interface LedgerTransport {
   send: (

@@ -16,8 +16,10 @@
 import { serializePath } from './bip32'
 import { processErrorResponse, processResponse } from './common'
 import { LEDGER_DASHBOARD_CLA, LedgerError, PAYLOAD_TYPE } from './consts'
+import { warnLegacyTransport } from './deprecation'
 import { ResponsePayload } from './payload'
 import { ResponseError } from './responseError'
+import { DMKTransport } from './transports/dmk'
 import {
   type ConstructorParams,
   type INSGeneric,
@@ -41,13 +43,33 @@ export default class BaseApp {
   readonly CUSTOM_APP_ERROR_DESCRIPTION?: Readonly<Record<LedgerError, string>>
 
   /**
-   * Constructs a new BaseApp instance.
+   * Constructs a new BaseApp instance over a Device Management Kit session.
+   * @param transport - A {@link DMKTransport} bound to a connected DMK session.
+   * @param params - The constructor parameters.
+   */
+  constructor(transport: DMKTransport, params: ConstructorParams)
+  /**
+   * Constructs a new BaseApp instance over any transport that can send an APDU.
+   *
+   * @deprecated Pass a {@link DMKTransport} instead. Ledger deprecated `@ledgerhq/hw-transport`
+   * in favour of the Device Management Kit, and this overload -- which also admits hand-rolled
+   * transports -- is removed in the next major version. Using it logs a one-time warning.
+   *
+   * `DMKTransport` has private members, so only a real instance selects the overload above: an
+   * hw-transport `Transport` or a plain `{ send }` object lands here. Subclasses that forward a
+   * generic transport to `super` land here too, which is what surfaces the deprecation to SDKs.
    * @param transport - The transport mechanism to communicate with the device.
    * @param params - The constructor parameters.
    */
+  constructor(transport: LedgerTransport, params: ConstructorParams)
   constructor(transport: LedgerTransport, params: ConstructorParams) {
     if (transport == null) {
       throw new Error('Transport has not been defined')
+    }
+    // A deprecation notice, not a security check: a structural or cross-copy transport can
+    // defeat instanceof, and the transport runs in the caller's own process anyway.
+    if (!(transport instanceof DMKTransport)) {
+      warnLegacyTransport()
     }
 
     this.transport = transport
